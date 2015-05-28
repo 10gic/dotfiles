@@ -12,8 +12,14 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    alias ls='ls -G'
+    alias ll='ls -lhF'
+else
+    alias ll='ls -lhFG --group-directories-first'
+fi
+
 alias l.='ls -d .*'
-alias ll='ls -lhFG --group-directories-first'
 
 if [ -f /usr/lib64/LispWorks/lispworks-5-1-0-amd64-linux ]; then
     alias lispworks5="/usr/lib64/LispWorks/lispworks-5-1-0-amd64-linux"
