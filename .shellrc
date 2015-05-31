@@ -17,6 +17,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     alias ll='ls -lhF'
 else
     alias ll='ls -lhFG --group-directories-first'
+    alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
 fi
 
 alias l.='ls -d .*'
@@ -27,8 +28,6 @@ fi
 if [ -f /usr/local/lib64/LispWorks6.1/lispworks-6-1-0-amd64-linux ]; then
     alias lispworks6="/usr/local/lib64/LispWorks6.1/lispworks-6-1-0-amd64-linux"
 fi
-
-alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
 
 alias cd..="cd .."
 alias cd...="cd ../.."
