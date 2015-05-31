@@ -23,7 +23,9 @@ zstyle ':completion:*' completer _expand _complete _correct _approximate
 zstyle ':completion:*' format 'Completing %d'
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*' menu select=2
-eval "$(dircolors -b)"
+if command -v dircolors >/dev/null 2>/dev/null; then
+    eval "$(dircolors -b)"
+fi
 zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' list-colors ''
 zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
@@ -48,9 +50,10 @@ case $TERM in
         ;;
 esac
 
-
-test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+if command -v dircolors >/dev/null 2>/dev/null; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+fi
 
 
 # if command not found, prompt which package it in.
@@ -61,7 +64,7 @@ zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 # Refer to http://chneukirchen.org/dotfiles/.zshrc
 WORDCHARS="*?_-.[]~&;$%^+"
 _backward_kill_default_word() {
-  WORDCHARS='*?_-.[]~=/&;!#$%^(){}<>' zle backward-kill-word
+    WORDCHARS='*?_-.[]~=/&;!#$%^(){}<>' zle backward-kill-word
 }
 zle -N backward-kill-default-word _backward_kill_default_word
 bindkey '\e=' backward-kill-default-word   # = is next to backspace
@@ -78,5 +81,5 @@ bindkey "^[m" copy-earlier-word
 setopt KSH_ARRAYS
 setopt SH_WORD_SPLIT
 if [ -f ~/.shellrc ]; then
-  source ~/.shellrc
+    source ~/.shellrc
 fi
