@@ -86,7 +86,7 @@ function emacs-stop {
 }
 
 function emacs-status {
-    pgrep -l emacs
+    pgrep -l emacs |awk '{print $1}' |xargs ps -f -p
 }
 
 function launch-by-emacs {
