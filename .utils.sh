@@ -76,7 +76,7 @@ export WINEARCH=win32
 
 ################################################################################
 ################################################################################
-## for emacs
+## settings/fucntions for emacs
 
 function emacs-start {
     LC_CTYPE=zh_CN.UTF-8 emacs --daemon
@@ -195,3 +195,16 @@ function ediff {
     fi
 }
 
+
+################################################################################
+################################################################################
+## settings/fucntions for gdb
+
+## usage: gdbbt <pid>
+## like pstack, with more information (eg. line number).
+gdbbt() {
+    tmp=`mktemp`
+    echo thread apply all bt >"$tmp"
+    gdb -batch -nx -q -x "$tmp" -p "$1"
+    rm -f "$tmp"
+}
