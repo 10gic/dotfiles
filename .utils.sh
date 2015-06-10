@@ -201,7 +201,7 @@ function ediff {
 ## settings/fucntions for gdb
 
 ## usage: gdbbt <pid>
-## like pstack, with more information (eg. line number).
+## like pstack, with more information (eg. line number) if compiled with "-g".
 gdbbt() {
     tmp=`mktemp`
     echo thread apply all bt >"$tmp"
