@@ -77,9 +77,10 @@ zle -N copy-earlier-word
 bindkey "^[m" copy-earlier-word
 
 
-# source common settings
+################################################################################
+# source common utils/settings
 setopt KSH_ARRAYS
 setopt SH_WORD_SPLIT
-if [ -f ~/.shellrc ]; then
-    source ~/.shellrc
+if [ -f ~/.utils.sh ]; then
+    source ~/.utils.sh
 fi
