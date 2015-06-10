@@ -39,13 +39,14 @@ if command -v trash-put >/dev/null 2>/dev/null; then
     alias rm='trash-put'
 fi
 
+################################################################################
 if [ -d ~/bin ]; then
     export PATH="~/bin:${PATH}"
 fi
 
 export HISTCONTROL=ignoredups
 
-function mkcd() {
+function mkcd {
     mkdir -p "$1" && cd "$1";
 }
 
