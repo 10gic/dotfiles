@@ -208,3 +208,32 @@ gdbbt() {
     gdb -batch -nx -q -x "$tmp" -p "$1"
     rm -f "$tmp"
 }
+
+
+################################################################################
+## helper fucntions for cscope
+
+getdef() {
+    # get C/C++ function definitions in current directory
+    get_info_cscope 1 $1
+}
+
+getref() {
+    # get C/C++ function references in current directory
+    get_info_cscope 3 $1
+}
+
+get_info_cscope() {
+    # $1 is input field num (counting from 0)
+    # $2 is keyword
+    if [ ! -a $PWD/cscope.output ]; then
+        indexfile=`mktemp`
+        listfile=`mktemp`
+        cscope-indexer -f $indexfile -i $listfile -r
+        cscope -d -f $indexfile -L -$1 $2
+        rm -f $indexfile
+        rm -f $listfile
+    else
+        cscope -L -$1 $2
+    fi
+}
