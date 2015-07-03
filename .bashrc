@@ -33,11 +33,6 @@ case "$TERM" in
 esac
 
 ################################################################################
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
-
-################################################################################
 #
 # extends bash's CD to keep, display and access history of visited directory
 # names
@@ -125,6 +120,12 @@ _ssh()
     return 0
 }
 complete -F _ssh ssh
+
+
+################################################################################
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
 
 ################################################################################
 if [ -f ~/.utils.sh ]; then
