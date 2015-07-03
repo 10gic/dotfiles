@@ -87,7 +87,12 @@ function emacs-stop {
 }
 
 function emacs-status {
-    pgrep -l emacs |awk '{print $1}' |xargs ps -f -p
+    pids=`pgrep emacs`;
+    if [ $? -eq 0 ]; then
+        ps -f -p $pids;
+    else
+        echo "Cannot find emacs process.";
+    fi
 }
 
 function launch-by-emacs {
