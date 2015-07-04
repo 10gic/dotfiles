@@ -60,7 +60,7 @@ cl () {
         echo -n $PWD | pbcopy
         echo "$PWD copied"
     else
-        fullpath=`readlink -nf $1`;  # readlink -f option does not exist on Mac OS X
+        typeset fullpath=`readlink -nf $1`;  # readlink -f option does not exist on Mac OS X
         #echo $fullpath;
         ## test xsel
         xsel >/dev/null 2>&1
@@ -221,7 +221,7 @@ function ediff {
 ## usage: gdbbt <pid>
 ## like pstack, with more information (eg. line number) if compiled with "-g".
 gdbbt() {
-    tmp=`mktemp /tmp/gdbbt.XXXXXX`
+    typeset tmp=`mktemp /tmp/gdbbt.XXXXXX`
     echo thread apply all bt >"$tmp"
     gdb -batch -nx -q -x "$tmp" -p "$1"
     rm -f "$tmp"
@@ -249,16 +249,13 @@ query_cscope() {
         return
     fi
     if [ ! -a $PWD/cscope.output ]; then
-        index_file=`mktemp /tmp/cscope.XXXXXX`
-        list_file=`mktemp /tmp/cscope.XXXXXX`
+        typeset index_file=`mktemp /tmp/cscope.XXXXXX`
+        typeset list_file=`mktemp /tmp/cscope2.XXXXXX`
         if command -v cscope-indexer >/dev/null 2>/dev/null; then
             cscope-indexer -f $index_file -i $list_file -r
         else
             # generate index file manually if cscope-indexer is not available.
-            ( find $PWD \( -type f -o -type l \) ) | \
-                egrep -i '\.([chly](xx|pp)*|cc|hh)$' | \
-                sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
-                sort > $list_file
+            cscope-generate-list $list_file
             cscope -b -i $list_file -f $index_file
         fi
         cscope -d -f $index_file -L -$1 $2
@@ -267,4 +264,16 @@ query_cscope() {
     else
         cscope -L -$1 $2
     fi
+}
+
+cscope-generate-list ()
+{
+    typeset list_file=cscope.files
+    if [ $# -ge 1 ]; then
+        list_file=$1
+    fi
+    ( find $PWD \( -type f -o -type l \) ) | \
+        egrep -i '\.([chly](xx|pp)*|cc|hh)$' | \
+        sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
+        sort > $list_file
 }
