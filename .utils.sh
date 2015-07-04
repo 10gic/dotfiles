@@ -216,7 +216,7 @@ function ediff {
 ## usage: gdbbt <pid>
 ## like pstack, with more information (eg. line number) if compiled with "-g".
 gdbbt() {
-    tmp=`mktemp`
+    tmp=`mktemp /tmp/gdbbt.XXXXXX`
     echo thread apply all bt >"$tmp"
     gdb -batch -nx -q -x "$tmp" -p "$1"
     rm -f "$tmp"
@@ -228,24 +228,37 @@ gdbbt() {
 
 getdef() {
     # get C/C++ function definitions in current directory
-    get_info_cscope 1 $1
+    query_cscope 1 $1
 }
 
 getref() {
     # get C/C++ function references in current directory
-    get_info_cscope 3 $1
+    query_cscope 3 $1
 }
 
-get_info_cscope() {
+query_cscope() {
     # $1 is input field num (counting from 0)
     # $2 is keyword
+    if ! command -v cscope >/dev/null 2>/dev/null; then
+        echo "cscope is not found."
+        return
+    fi
     if [ ! -a $PWD/cscope.output ]; then
-        indexfile=`mktemp`
-        listfile=`mktemp`
-        cscope-indexer -f $indexfile -i $listfile -r
-        cscope -d -f $indexfile -L -$1 $2
-        rm -f $indexfile
-        rm -f $listfile
+        index_file=`mktemp /tmp/cscope.XXXXXX`
+        list_file=`mktemp /tmp/cscope.XXXXXX`
+        if command -v cscope-indexer >/dev/null 2>/dev/null; then
+            cscope-indexer -f $index_file -i $list_file -r
+        else
+            # generate index file manually if cscope-indexer is not available.
+            ( find $PWD \( -type f -o -type l \) ) | \
+                egrep -i '\.([chly](xx|pp)*|cc|hh)$' | \
+                sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
+                sort > $list_file
+            cscope -b -i $list_file -f $index_file
+        fi
+        cscope -d -f $index_file -L -$1 $2
+        rm -f $index_file
+        rm -f $list_file
     else
         cscope -L -$1 $2
     fi
