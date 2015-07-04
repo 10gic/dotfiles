@@ -121,19 +121,27 @@ function launch-by-emacs {
 # The keyword "return" can only return a number between 0 and 255.
 # But, ppid may greater than 255, so cannot use "return".
 #
-# Note: Please do NOT use other "echo" statments in this function.
+# Note 1: Please do NOT use other "echo" statments in this function.
+# Note 2: ps in Cygwin does not support -o option.
+# Note 3: Mac OS X, for example Yosemite, does not have directory /proc
 function get-ppid {
     # First, check if is number.
     if [[ $1 =~ ^[0-9]+$ ]]; then
         #echo "debug. get-ppid arg: "$1 >1.log
-        typeset -a stat
-        stat=($(< /proc/$1/stat))  # create an array
-        # Note：typeset -a stat=($(< /proc/$1/stat)) cannot work in zsh.
+        if [ -a /proc/$1/stat ]; then
+            typeset -a stat
+            stat=($(< /proc/$1/stat))  # create an array
+            # Note：typeset -a stat=($(< /proc/$1/stat)) cannot work in zsh.
 
-        typeset ppid=${stat[3]}    # get the fourth field
-        echo $ppid   # "return vaule".
+            typeset ppid=${stat[3]}    # get the fourth field
+            echo $ppid   # "return vaule".
+        else
+            typeset ppid=`ps -p $1 -o ppid=`;
+            # The equal sign in "ppid=" suppresses the output of the header line
+            echo $ppid
+        fi
     else
-        echo "0"  # error
+        echo "-1"  # error
     fi
 }
 
