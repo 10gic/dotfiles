@@ -46,7 +46,7 @@ fi
 
 export HISTCONTROL=ignoredups
 
-function mkcd {
+mkcd () {
     mkdir -p "$1" && cd "$1";
 }
 
@@ -54,17 +54,22 @@ if [ -f ~/.bcrc ]; then
     export BC_ENV_ARGS=~/.bcrc
 fi
 
-# copy fullpath to clipboard.
-function cl {
-    fullpath=`readlink -nf $1`;
-    #echo $fullpath;
-    ## test xsel
-    xsel >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        # if xsel work normally, copy fullpath to clipboard.
-        echo -n $fullpath | xsel -ib
+# Copy fullpath of $1 to clipboard. Just copy $PWD into clipboard on Mac OS X
+cl () {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo -n $PWD | pbcopy
+        echo "$PWD copied"
     else
-        echo $fullpath;
+        fullpath=`readlink -nf $1`;  # readlink -f option does not exist on Mac OS X
+        #echo $fullpath;
+        ## test xsel
+        xsel >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            # if xsel work normally, copy fullpath to clipboard.
+            echo -n $fullpath | xsel -ib
+        else
+            echo $fullpath;
+        fi
     fi
 }
 
