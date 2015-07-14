@@ -6,19 +6,28 @@
 
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
 fi
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    alias ls='ls -G'
-    alias ll='ls -lhF'
-else
-    alias ll='ls -lhFG --group-directories-first'
-    alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
-fi
+case "$(uname -s)" in
+    Linux)
+        alias ls='ls --color=auto'
+        alias ll='ls -lhFG --group-directories-first'
+        alias grep='grep --color=auto'
+        alias fgrep='fgrep --color=auto'
+        alias egrep='egrep --color=auto'
+        alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
+        ;;
+    Darwin)
+        alias ls='ls -G'
+        alias ll='ls -lhF'
+        ;;
+    AIX)
+        alias ll='ls -lF'
+        ;;
+    SunOS)
+        alias ll='ls -lhF'
+        ;;
+esac
 
 alias l.='ls -d .*'
 
@@ -56,21 +65,27 @@ fi
 
 # Copy fullpath of $1 to clipboard. Just copy $PWD into clipboard on Mac OS X
 cl () {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo -n $PWD | pbcopy
-        echo "$PWD copied"
-    else
-        typeset fullpath=`readlink -nf $1`;  # readlink -f option does not exist on Mac OS X
-        #echo $fullpath;
-        ## test xsel
-        xsel >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            # if xsel work normally, copy fullpath to clipboard.
-            echo -n $fullpath | xsel -ib
-        else
-            echo $fullpath;
-        fi
-    fi
+    case "$(uname -s)" in
+        Linux)
+            typeset fullpath=`readlink -nf $1`;
+            ## readlink -f option does not exist on Mac OS X
+            #echo $fullpath;
+            ## test xsel
+            xsel >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                # if xsel work normally, copy fullpath to clipboard.
+                echo -n $fullpath | xsel -ib
+            else
+                echo $fullpath;
+            fi
+            ;;
+        Darwin)
+            echo -n $PWD | pbcopy
+            echo "$PWD copied"
+            ;;
+        *)
+            echo "Do nothing"
+    esac
 }
 
 # Environment variable for wine.
