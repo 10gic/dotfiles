@@ -9,7 +9,7 @@ if [ -x /usr/bin/dircolors ]; then
 fi
 
 case "$(uname -s)" in
-    Linux)
+    Linux|CYGWIN*)
         alias ls='ls --color=auto'
         alias ll='ls -lhFG --group-directories-first'
         alias grep='grep --color=auto'
@@ -66,7 +66,7 @@ fi
 # Copy fullpath of $1 to clipboard. Just copy $PWD into clipboard on Mac OS X
 cl () {
     case "$(uname -s)" in
-        Linux)
+        Linux|CYGWIN*)
             typeset fullpath=`readlink -nf $1`;
             ## readlink -f option does not exist on Mac OS X
             #echo $fullpath;
