@@ -1,4 +1,4 @@
-# This file can be sourced by bash/zsh.
+# This file can be sourced by bash/ksh/zsh.
 #
 # Note for zsh: Following two options must be set before source this file.
 # setopt KSH_ARRAYS
@@ -55,13 +55,24 @@ fi
 
 export HISTCONTROL=ignoredups
 
-mkcd () {
-    mkdir -p "$1" && cd "$1";
-}
+# Environment variable for wine.
+export WINEARCH=win32
 
+# Environment variable for X server
+# export DISPLAY=:0.0
+
+# Environment variable for bc
 if [ -f ~/.bcrc ]; then
     export BC_ENV_ARGS=~/.bcrc
 fi
+
+################################################################################
+# Note for portability:
+# Hyphen can not used in function name in ksh (Version AJM 93u+ 2012-08-01).
+
+mkcd () {
+    mkdir -p "$1" && cd "$1";
+}
 
 # Copy fullpath of $1 to clipboard. Just copy $PWD into clipboard on Mac OS X
 cl () {
@@ -88,25 +99,19 @@ cl () {
     esac
 }
 
-# Environment variable for wine.
-export WINEARCH=win32
-
-# Environment variable for X server
-# export DISPLAY=:0.0
-
 ################################################################################
 ################################################################################
 ## settings/fucntions for emacs
 
-function emacs-start {
+function emacs_start {
     LC_CTYPE=zh_CN.UTF-8 emacs --daemon
 }
 
-function emacs-stop {
+function emacs_stop {
     emacsclient --eval "(progn (setq kill-emacs-hook 'nil) (kill-emacs))"
 }
 
-function emacs-status {
+function emacs_status {
     pids=`pgrep emacs`;
     if [ $? -eq 0 ]; then
         ps -f -p $pids;
@@ -115,7 +120,7 @@ function emacs-status {
     fi
 }
 
-function launch-by-emacs {
+function launch_by_emacs {
     typeset p_pid=$PPID
     typeset ppid_cmd
     while [[ $p_pid != 1 ]]
@@ -127,7 +132,7 @@ function launch-by-emacs {
              return 1;
         fi
         #echo "p_pid is " $p_pid
-        p_pid=$(get-ppid $p_pid)
+        p_pid=$(get_ppid $p_pid)
         #echo "p_pid after is " $p_pid
         if [[ $p_pid -lt 1 ]]; then
             return 0
@@ -144,7 +149,7 @@ function launch-by-emacs {
 # Note 1: Please do NOT use other "echo" statments in this function.
 # Note 2: ps in Cygwin does not support -o option.
 # Note 3: Mac OS X, for example Yosemite, does not have directory /proc
-function get-ppid {
+function get_ppid {
     # First, check if is number.
     if [[ $1 =~ ^[0-9]+$ ]]; then
         #echo "debug. get-ppid arg: "$1 >1.log
@@ -168,7 +173,7 @@ function get-ppid {
 function em {
     # If current shell is created by emacs (M-x term), then
     #  open file with --no-wait option in current emacs frame.
-    launch-by-emacs
+    launch_by_emacs
     if [[ $? == 1 ]]; then
          emacsclient -n "$@" # -n --no-wait
     else
@@ -206,7 +211,7 @@ function ediff {
         quoted1=${1//\\/\\\\}; quoted1=${quoted1//\"/\\\"}
         quoted2=${2//\\/\\\\}; quoted2=${quoted2//\"/\\\"}
         #emacsclient -t -a "" --eval "(ediff \"$quoted1\" \"$quoted2\")"
-        launch-by-emacs
+        launch_by_emacs
         if [[ $? == 1 ]]; then
             emacsclient -n --eval "(ediff \"$quoted1\" \"$quoted2\")"
         else
@@ -217,7 +222,7 @@ function ediff {
             quoted1=${1//\\/\\\\}; quoted1=${quoted1//\"/\\\"}
             quoted2=${2//\\/\\\\}; quoted2=${quoted2//\"/\\\"}
             # emacsclient -t -a "" --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
-            if [[ launch-by-emacs == 1 ]]; then
+            if [[ launch_by_emacs == 1 ]]; then
                 emacsclient -n --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
             else
                 emacsclient -t -a "" --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
@@ -270,7 +275,7 @@ query_cscope() {
             cscope-indexer -f $index_file -i $list_file -r
         else
             # generate index file manually if cscope-indexer is not available.
-            cscope-generate-list $list_file
+            cscope_generate_list $list_file
             cscope -b -i $list_file -f $index_file
         fi
         cscope -d -f $index_file -L -$1 $2
@@ -281,7 +286,7 @@ query_cscope() {
     fi
 }
 
-cscope-generate-list ()
+cscope_generate_list ()
 {
     typeset list_file=cscope.files
     if [ $# -ge 1 ]; then
