@@ -48,6 +48,12 @@ if command -v trash-put >/dev/null 2>/dev/null; then
     alias rm='trash-put'
 fi
 
+# check if rlwrap exists in $PATH
+if command -v rlwrap >/dev/null 2>/dev/null; then
+    alias sqlplus='rlwrap sqlplus'
+    alias db2='rlwrap db2'
+fi
+
 ################################################################################
 if [ -d ~/bin ]; then
     export PATH="~/bin:${PATH}"
