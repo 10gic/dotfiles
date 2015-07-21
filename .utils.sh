@@ -253,15 +253,15 @@ gdbbt() {
 
 getdef() {
     # get C/C++ function definitions in current directory
-    query_cscope 1 $1
+    cscope_query 1 $1
 }
 
 getref() {
     # get C/C++ function references in current directory
-    query_cscope 3 $1
+    cscope_query 3 $1
 }
 
-query_cscope() {
+cscope_query() {
     # $1 is input field num (counting from 0)
     # $2 is keyword
     if ! command -v cscope >/dev/null 2>/dev/null; then
