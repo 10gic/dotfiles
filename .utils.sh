@@ -44,12 +44,12 @@ alias cd....="cd ../../.."
 alias cd.....="cd ../../../.."
 
 # check if trash-put exists in $PATH
-if command -v trash-put >/dev/null 2>/dev/null; then
+if command -v trash-put >/dev/null 2>&1; then
     alias rm='trash-put'
 fi
 
 # check if rlwrap exists in $PATH
-if command -v rlwrap >/dev/null 2>/dev/null; then
+if command -v rlwrap >/dev/null 2>&1; then
     alias sqlplus='rlwrap sqlplus'
     alias db2='rlwrap db2'
 fi
@@ -80,34 +80,40 @@ mkcd () {
     mkdir -p "$1" && cd "$1";
 }
 
-# Copy fullpath of $1 to clipboard. Just copy $PWD into clipboard on Mac OS X
+# Copy fullpath of $1 to clipboard.
 cl () {
+    if [[ "$1" == /* ]]; then
+        # check whether the first character of $1 is '/'
+        typeset fullpath="$1"
+    else
+        typeset fullpath="$PWD/$1"
+    fi
     case "$(uname -s)" in
         Linux|CYGWIN*)
-            typeset fullpath=`readlink -nf $1`;
             ## readlink -f option does not exist on Mac OS X
-            #echo $fullpath;
+            typeset normalpath=`readlink -nf $fullpath`;
             ## test xsel
             xsel >/dev/null 2>&1
             if [ $? -eq 0 ]; then
-                # if xsel work normally, copy fullpath to clipboard.
-                echo -n $fullpath | xsel -ib
+                # if xsel work normally, copy path to clipboard.
+                echo -n $normalpath | xsel -ib
+                echo "$normalpath copied"
             else
-                echo $fullpath;
+                echo $normalpath
             fi
             ;;
         Darwin)
-            echo -n $PWD | pbcopy
-            echo "$PWD copied"
+            echo -n $fullpath | pbcopy
+            echo "$fullpath copied"
             ;;
         *)
-            echo "Do nothing"
+            echo $fullpath
     esac
 }
 
 ################################################################################
 ################################################################################
-## settings/fucntions for emacs
+## helper functions for emacs
 
 function emacs_start {
     LC_CTYPE=zh_CN.UTF-8 emacs --daemon
@@ -242,7 +248,7 @@ function ediff {
 
 ################################################################################
 ################################################################################
-## settings/fucntions for gdb
+## helper functions for gdb
 
 ## usage: gdbbt <pid>
 ## like pstack, with more information (eg. line number) if compiled with "-g".
@@ -255,7 +261,17 @@ gdbbt() {
 
 
 ################################################################################
-## helper fucntions for cscope
+################################################################################
+## help functions for perl
+
+# usage: perl_ftrace fun1,fun2 yourprogram.pl
+perl_ftrace () {
+
+}
+
+
+################################################################################
+## helper functions for cscope
 
 getdef() {
     # get C/C++ function definitions in current directory
@@ -270,14 +286,14 @@ getref() {
 cscope_query() {
     # $1 is input field num (counting from 0)
     # $2 is keyword
-    if ! command -v cscope >/dev/null 2>/dev/null; then
+    if ! command -v cscope >/dev/null 2>&1; then
         echo "cscope is not found."
         return
     fi
     if [ ! -a $PWD/cscope.output ]; then
         typeset index_file=`mktemp /tmp/cscope.XXXXXX`
         typeset list_file=`mktemp /tmp/cscope2.XXXXXX`
-        if command -v cscope-indexer >/dev/null 2>/dev/null; then
+        if command -v cscope-indexer >/dev/null 2>&1; then
             cscope-indexer -f $index_file -i $list_file -r
         else
             # generate index file manually if cscope-indexer is not available.

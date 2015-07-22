@@ -1,0 +1,47 @@
+How to use these modules?
+1. Just copy them into a directory of @INC
+Following command can be used to check @INC:
+$ perl -le "print foreach @INC"
+/usr/lib/perl5/site_perl/5.14/x86_64-cygwin-threads
+/usr/lib/perl5/site_perl/5.14
+/usr/lib/perl5/vendor_perl/5.14/x86_64-cygwin-threads
+/usr/lib/perl5/vendor_perl/5.14
+/usr/lib/perl5/5.14/x86_64-cygwin-threads
+/usr/lib/perl5/5.14
+
+2. Or set PERL5LIB
+export PERL5LIB='/path/to/this/directory'
+
+
+################################################################################
+Debug::LTrace - Perl extension to locally trace subroutine calls
+
+Debug::LTrace useful examples:
+Use in command line:
+# Trace "foo" and "bar" subroutines
+perl -MDebug::LTrace=foo,bar yourprogram.pl
+
+# Trace all subroutines in current package ( "main" )
+perl -MDebug::LTrace='*' yourprogram.pl
+
+# Trace all subroutines in package "SomeModule" and "AnotherModule::foo"
+perl -MDebug::LTrace='SomeModule::*, AnotherModule::foo' yourprogram.pl
+
+
+Use in perl source code:
+# Trace "foo", "bar" subroutines in current package (can be not "main")
+use Debug::LTrace qw/foo bar/;
+
+# Trace all subroutines in current package (can be not "main")
+use Debug::LTrace qw/*/;
+
+# Trace all subroutines in package "SomeModule" and "AnotherModule::foo"
+use Debug::LTrace qw/SomeModule::* AnotherModule::foo/;
+
+
+
+Note:
+Debug::LTrace dependents on nonstandard modul Devel::Symdump and Hook::LexWrap.
+
+Reference:
+http://search.cpan.org/~koorchik/Debug-LTrace-0.03/lib/Debug/LTrace.pm
