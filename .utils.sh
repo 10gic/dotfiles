@@ -262,11 +262,19 @@ gdbbt() {
 
 ################################################################################
 ################################################################################
-## help functions for perl
+## helper functions for perl
 
-# usage: perl_ftrace fun1,fun2 yourprogram.pl
+# usage: perl_ftrace fun1,fun2 yourprogram.pl [arguments]
+# Prerequisite: Debug::LTrace
 perl_ftrace () {
-
+    if [ ${#@} -lt 2 ]; then
+        echo "usage: perl_ftrace fun1,fun2 yourprogram.pl [arguments]"
+        return
+    fi
+    typeset fun=$1
+    typeset prog=$2
+    typeset args=$3
+    PERL5LIB="$HOME/.perllib":$PERL5LIB perl -MDebug::LTrace="$fun" -- "$prog" $args
 }
 
 
