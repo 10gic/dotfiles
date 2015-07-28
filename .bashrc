@@ -123,11 +123,11 @@ complete -F _ssh ssh
 
 
 ################################################################################
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+if [ -f ~/.utils.sh ]; then
+    . ~/.utils.sh
 fi
 
 ################################################################################
-if [ -f ~/.utils.sh ]; then
-    . ~/.utils.sh
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
 fi
