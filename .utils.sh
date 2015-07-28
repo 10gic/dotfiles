@@ -43,6 +43,9 @@ alias cd...="cd ../.."
 alias cd....="cd ../../.."
 alias cd.....="cd ../../../.."
 
+# Don't delete the input files when using unxz
+alias unxz='unxz -k'
+
 # check if trash-put exists in $PATH
 if command -v trash-put >/dev/null 2>&1; then
     alias rm='trash-put'
