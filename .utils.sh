@@ -4,6 +4,10 @@
 # setopt KSH_ARRAYS
 # setopt SH_WORD_SPLIT
 
+if [ -d ~/bin ]; then
+    export PATH="~/bin:${PATH}"
+fi
+
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
@@ -55,11 +59,6 @@ fi
 if command -v rlwrap >/dev/null 2>&1; then
     alias sqlplus='rlwrap sqlplus'
     alias db2='rlwrap db2'
-fi
-
-################################################################################
-if [ -d ~/bin ]; then
-    export PATH="~/bin:${PATH}"
 fi
 
 export HISTCONTROL=ignoredups
