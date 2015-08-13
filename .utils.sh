@@ -50,6 +50,10 @@ alias cd.....="cd ../../../.."
 # Don't delete the input files when using unxz
 alias unxz='unxz -k'
 
+# ulimit command by default changes the HARD limits
+# Use the -S option to change the SOFT limits
+alias ulimit='ulimit -S'
+
 # check if trash-put exists in $PATH
 if command -v trash-put >/dev/null 2>&1; then
     alias rm='trash-put'
