@@ -35,13 +35,6 @@ esac
 
 alias l.='ls -d .*'
 
-if [ -f /usr/lib64/LispWorks/lispworks-5-1-0-amd64-linux ]; then
-    alias lispworks5="/usr/lib64/LispWorks/lispworks-5-1-0-amd64-linux"
-fi
-if [ -f /usr/local/lib64/LispWorks6.1/lispworks-6-1-0-amd64-linux ]; then
-    alias lispworks6="/usr/local/lib64/LispWorks6.1/lispworks-6-1-0-amd64-linux"
-fi
-
 alias cd..="cd .."
 alias cd...="cd ../.."
 alias cd....="cd ../../.."
