@@ -258,6 +258,40 @@ gdbbt() {
     rm -f "$tmp"
 }
 
+# gdbwait wait a process and debug it.
+# usage: gdbwait <program-name>
+#
+# In Apple's version of gdb, you can capture processes by:
+# (gdb) attach --waitfor <process-name>
+# But it's not available in official GNU gdb.
+# Refer to
+# http://stackoverflow.com/questions/4382348/is-there-any-way-to-tell-gdb-to-wait-for-a-process-to-start-and-attach-to-it
+#
+# Note:
+# It may not work if your program name is too short.
+# Because gdbwait use pgrep to find pid for matched keyword.
+# But the matching is not EXACT, if you run `pgrep ls`, you may find undesired
+# pids which related with /usr/bin/pulseaudio
+gdbwait()
+{
+    typeset prog_nm=$1
+    typeset current_user=$USER
+    # Backup old matching pid , we don't debug existing processes
+    typeset old_pids=`pgrep -u $current_user $prog_nm`
+    typeset new_pid=""
+    while [ "$new_pid" = "" ]; do
+        new_pid=`pgrep -u $current_user -n $prog_nm`
+        # -n in pgrep means newest matching processes
+        if [[ "$new_pid" != "" ]]; then
+            if [[ "$old_pids" == *$new_pid* ]]; then
+                new_pid=""
+            fi
+        fi
+    done
+    echo "Begin debug pid: $new_pid"
+    gdb -q -p $new_pid
+}
+
 # Do not print the introductory and copyright messages in gdb.
 alias gdb='gdb -q'
 
