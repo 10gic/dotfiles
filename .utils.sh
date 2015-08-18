@@ -47,12 +47,15 @@ alias unxz='unxz -k'
 # Use the -S option to change the SOFT limits
 alias ulimit='ulimit -S'
 
-# check if trash-put exists in $PATH
+# Compute sum of stdin line by line
+alias mysum='paste -sd+ - |bc'
+
+# Check if trash-put exists in $PATH
 if command -v trash-put >/dev/null 2>&1; then
     alias rm='trash-put'
 fi
 
-# check if rlwrap exists in $PATH
+# Check if rlwrap exists in $PATH
 if command -v rlwrap >/dev/null 2>&1; then
     alias sqlplus='rlwrap sqlplus'
     alias db2='rlwrap db2'
