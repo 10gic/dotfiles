@@ -48,6 +48,8 @@ alias unxz='unxz -k'
 alias ulimit='ulimit -S'
 
 # Compute sum of stdin line by line
+## If there are too many lines, tool bc would fail.
+## This is an alternative: awk ' { totol += $0 } END { print totol }'
 alias mysum='paste -sd+ - |bc'
 
 # Check if trash-put exists in $PATH
@@ -111,6 +113,47 @@ cl () {
         *)
             echo $fullpath
     esac
+}
+
+# Remove ALL System V IPC objects belong to current user.
+kill_ipcs ()
+{
+    typeset user=`whoami`
+
+    typeset IPCS_S=`ipcs -s | egrep "0x[0-9a-f]+ [0-9]+" | grep $user | cut -f2 -d" "`
+    typeset IPCS_M=`ipcs -m | egrep "0x[0-9a-f]+ [0-9]+" | grep $user | cut -f2 -d" "`
+    typeset IPCS_Q=`ipcs -q | egrep "0x[0-9a-f]+ [0-9]+" | grep $user | cut -f2 -d" "`
+
+    typeset id
+    for id in $IPCS_M; do
+        ipcrm -m $id;
+    done
+
+    for id in $IPCS_S; do
+        ipcrm -s $id;
+    done
+
+    for id in $IPCS_Q; do
+        ipcrm -q $id;
+    done
+}
+
+# You don't need it if dos2unix is available.
+dos2unix_() {
+    if [ ! "$1" ] ; then
+        echo 'dos2unix_ file1 file2 ...'
+        return
+    fi
+
+    typeset TMP
+    while [ "$1" ] ; do
+        TMP=$1.$$
+        if tr -d '\r' <"$1" >"$TMP" ; then
+            cp -a -f "$TMP" "$1"
+        fi
+        rm -f "$TMP"
+        shift
+    done
 }
 
 ################################################################################
