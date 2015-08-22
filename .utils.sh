@@ -112,29 +112,22 @@ cl () {
             ;;
         *)
             echo $fullpath
+            ;;
     esac
 }
 
 # Remove ALL System V IPC objects belong to current user.
 kill_ipcs ()
 {
-    typeset user=`whoami`
+    # Default, whoami and "id -un" is not available in Solaris.
+    typeset user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
 
-    typeset IPCS_S=`ipcs -s | egrep "0x[0-9a-f]+ [0-9]+" | grep $user | cut -f2 -d" "`
-    typeset IPCS_M=`ipcs -m | egrep "0x[0-9a-f]+ [0-9]+" | grep $user | cut -f2 -d" "`
-    typeset IPCS_Q=`ipcs -q | egrep "0x[0-9a-f]+ [0-9]+" | grep $user | cut -f2 -d" "`
-
-    typeset id
-    for id in $IPCS_M; do
-        ipcrm -m $id;
-    done
-
-    for id in $IPCS_S; do
-        ipcrm -s $id;
-    done
-
-    for id in $IPCS_Q; do
-        ipcrm -q $id;
+    typeset opt;
+    for opt in -q -s -m
+    do
+        # Use grep to find matched user, false negative errors are possible.
+        # In output of ipcs, the msqid/shmid/semid is the second column ($2).
+        ipcs $opt | grep " ${user} " | awk '{print "ipcrm ""'$opt'",$2}' | sh -x
     done
 }
 
