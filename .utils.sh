@@ -79,8 +79,8 @@ fi
 ################################################################################
 # Note for portability:
 # Hyphen can not used in function name in ksh (Version AJM 93u+ 2012-08-01).
-# pgrep is not available in AIX default.
-# whoami is not available in Solaris default.
+# pgrep is not available in AIX by default.
+# whoami is not available in Solaris by default.
 
 
 mkcd () {
