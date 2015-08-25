@@ -20,6 +20,7 @@ FILE_LIST="
 .bashrc
 .utils.sh
 .perllib
+.vimrc
 "
 
 for file in $FILE_LIST; do
