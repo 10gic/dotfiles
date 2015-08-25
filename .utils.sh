@@ -79,6 +79,9 @@ fi
 ################################################################################
 # Note for portability:
 # Hyphen can not used in function name in ksh (Version AJM 93u+ 2012-08-01).
+# pgrep is not available in AIX by default.
+# whoami is not available in Solaris by default.
+
 
 mkcd () {
     mkdir -p "$1" && cd "$1";
@@ -134,7 +137,7 @@ kill_ipcs ()
 # You don't need it if dos2unix is available.
 dos2unix_() {
     if [ ! "$1" ] ; then
-        echo 'dos2unix_ file1 file2 ...'
+        echo 'Usage: dos2unix_ file1 file2 ...'
         return
     fi
 
@@ -313,6 +316,11 @@ gdbbt() {
 # pids which related with /usr/bin/pulseaudio
 gdbwait()
 {
+    if [ ! "$1" ] ; then
+        echo 'Usage: gdbwait process-name'
+        return
+    fi
+
     typeset prog_nm=$1
     typeset current_user=$USER
     # Backup old matching pid , we don't debug existing processes
