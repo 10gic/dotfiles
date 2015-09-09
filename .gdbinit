@@ -2,7 +2,7 @@
 set history save
 set history filename ~/.gdb_history
 
-set confirm off
+#set confirm off
 
 # helper functions
 define trace-fun
