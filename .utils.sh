@@ -409,3 +409,32 @@ cscope_generate_list ()
         sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
         sort > $list_file
 }
+
+################################################################################
+## helper functions for VirtualBox
+
+# usage: startvm [your_vmname]
+# start virtual machine in headless mode, and show ip of guest OS.
+startvm ()
+{
+    typeset vmname="$1"
+    if [ ! "$1" ] ; then
+        vmname="Debian8"   # My default virtual machine name.
+    fi
+    # start vm in headless mode
+    VBoxManage startvm $vmname --type headless
+    # show ip of guest OS
+    VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}'
+}
+
+# usage: stopvm [your_vmname]
+# stop virtual machine
+stopvm ()
+{
+    typeset vmname="$1"
+    if [ ! "$1" ] ; then
+        vmname="Debian8"   # My default virtual machine name.
+    fi
+    # shutdown virtual machine
+    VBoxManage controlvm $vmname poweroff
+}
