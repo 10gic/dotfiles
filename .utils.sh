@@ -423,12 +423,12 @@ startvm ()
     fi
     # start vm in headless mode
     VBoxManage startvm $vmname --type headless
-    # try to show ip of guest OS
+    # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
     typeset ip=`VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}'`
     if [ -z $ip ]; then
         echo "Cannot obtain IP of $vmname"
     else
-        echo "IP of $vmname is $ip"
+        echo "IP of $vmname may be $ip"
     fi
 }
 
