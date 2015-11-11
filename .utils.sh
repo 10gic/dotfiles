@@ -156,6 +156,9 @@ dos2unix_() {
 ################################################################################
 ## helper functions for emacs
 
+# emacsclient of Aquamacs (A emacs variant in Mac OS X). Just hard-code it.
+emacsclient_mac=/Applications/Aquamacs.app/Contents/MacOS/bin/emacsclient
+
 function emacs_start {
     LC_CTYPE=zh_CN.UTF-8 emacs --daemon
 }
@@ -173,16 +176,22 @@ function emacs_status {
     fi
 }
 
+# Check current shell is launched by emacs or not.
+# Return 0 if it's not launched by emacs
+# Return 1 if it's launched by emacs
+# Return 2 if it's launched by Aquamacs
 function launch_by_emacs {
     typeset p_pid=$PPID
     typeset ppid_cmd
     while [[ $p_pid != 1 ]]
     do
-        ## ppid_cmd=`ps -p $p_pid -o cmd=`
-        ## ps in Cygwin does not support -o option.
+        # ppid_cmd=`ps -p $p_pid -o cmd=` ## -o is not supported by ps in Cygwin
         ppid_cmd=`ps -p $p_pid | tail -n 1`
         if [[ $ppid_cmd == *emacs* ]]; then
              return 1;
+        fi
+        if [[ $ppid_cmd == *Aquamacs* ]]; then
+             return 2;
         fi
         #echo "p_pid is " $p_pid
         p_pid=$(get_ppid $p_pid)
@@ -225,12 +234,15 @@ function get_ppid {
 
 function em {
     # If current shell is created by emacs (M-x term), then
-    #  open file with --no-wait option in current emacs frame.
+    #  open file with -n (--no-wait) option in current emacs frame.
     launch_by_emacs
-    if [[ $? == 1 ]]; then
-         emacsclient -n "$@" # -n --no-wait
+    typeset retcode=$?
+    if [[ $retcode == 2 ]]; then
+        $emacsclient_mac -n "$@"
+    elif [[ $retcode == 1 ]]; then
+        emacsclient -n "$@"
     else
-         emacsclient -t -a "" "$@"
+        emacsclient -t -a "" "$@"
     fi
 }
 
@@ -259,6 +271,7 @@ function emn {
 function ediff {
     typeset quoted1
     typeset quoted2
+    # diff two files
     if [[ -f $1 && -f $2 ]]; then
         # Idea from: http://stackoverflow.com/questions/8848819/emacs-eval-ediff-1-2-how-to-put-this-line-in-to-shell-script
         quoted1=${1//\\/\\\\}; quoted1=${quoted1//\"/\\\"}
@@ -271,11 +284,13 @@ function ediff {
             emacsclient -t -a "" --eval "(ediff \"$quoted1\" \"$quoted2\")"
         fi
     else
+        # diff two directories
         if [[ -d $1 && -d $2 ]]; then
             quoted1=${1//\\/\\\\}; quoted1=${quoted1//\"/\\\"}
             quoted2=${2//\\/\\\\}; quoted2=${quoted2//\"/\\\"}
             # emacsclient -t -a "" --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
-            if [[ launch_by_emacs == 1 ]]; then
+            launch_by_emacs
+            if [[ $? == 1 ]]; then
                 emacsclient -n --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
             else
                 emacsclient -t -a "" --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
