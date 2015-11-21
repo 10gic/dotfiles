@@ -24,6 +24,9 @@ case "$(uname -s)" in
     Darwin)
         alias ls='ls -G'
         alias ll='ls -lhF'
+        alias grep='grep --color=auto'
+        alias fgrep='fgrep --color=auto'
+        alias egrep='egrep --color=auto'
         ;;
     AIX)
         alias ll='ls -lF'
