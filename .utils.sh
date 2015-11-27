@@ -332,8 +332,7 @@ gdbbt() {
 # Because gdbwait use pgrep to find pid for matched keyword.
 # But the matching is not EXACT, if you run `pgrep ls`, you may find undesired
 # pids which related with /usr/bin/pulseaudio
-gdbwait()
-{
+gdbwait() {
     if [ ! "$1" ] ; then
         echo 'Usage: gdbwait process-name'
         return
@@ -416,8 +415,7 @@ cscope_query() {
     fi
 }
 
-cscope_generate_list ()
-{
+cscope_generate_list () {
     typeset list_file=cscope.files
     if [ $# -ge 1 ]; then
         list_file=$1
@@ -433,8 +431,7 @@ cscope_generate_list ()
 
 # usage: startvm [your_vmname]
 # start virtual machine in headless mode, and show ip of guest OS.
-startvm ()
-{
+startvm () {
     typeset vmname="$1"
     if [ ! "$1" ] ; then
         vmname="Debian8"   # My default virtual machine name.
@@ -444,16 +441,15 @@ startvm ()
     # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
     typeset ip=`VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}'`
     if [ -z $ip ]; then
-        echo "Cannot obtain IP of $vmname"
+        echo "Cannot obtain ip of $vmname"
     else
-        echo "IP of $vmname may be $ip"
+        echo "$vmname ip may be $ip"
     fi
 }
 
 # usage: stopvm [your_vmname]
 # stop virtual machine
-stopvm ()
-{
+stopvm () {
     typeset vmname="$1"
     if [ ! "$1" ] ; then
         vmname="Debian8"   # My default virtual machine name.
