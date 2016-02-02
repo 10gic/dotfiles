@@ -221,7 +221,7 @@ function get_ppid {
         if [ -a /proc/$1/stat ]; then
             typeset -a stat
             stat=($(< /proc/$1/stat))  # create an array
-            # Note：typeset -a stat=($(< /proc/$1/stat)) cannot work in zsh.
+            # Note: typeset -a stat=($(< /proc/$1/stat)) cannot work in zsh.
 
             typeset ppid=${stat[3]}    # get the fourth field
             echo $ppid   # "return vaule".
@@ -253,7 +253,7 @@ function emn {
     typeset str=$1
     typeset -a array
     array=(${str//:/ })
-    ## Note：typeset -a array=(${str//:/ }) cannot work in zsh
+    ## Note: typeset -a array=(${str//:/ }) cannot work in zsh
     typeset filename=${array[0]}
     typeset line=${array[1]}
     typeset column=${array[2]}
