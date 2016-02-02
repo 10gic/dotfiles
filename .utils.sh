@@ -90,6 +90,23 @@ mkcd () {
     mkdir -p "$1" && cd "$1";
 }
 
+# rm files/directories except the specified items.
+rm_not () {
+    if [ ! "$1" ] ; then
+        echo 'Usage: rm_not file1 file2 ...'
+        return
+    fi
+
+    typeset ignore_files="";
+    typeset ignore_file;
+    for ignore_file in "$@";
+    do
+        ignore_files=${ignore_files}"-not -name ${ignore_file} ";
+    done;
+
+    find . $ignore_files -delete
+}
+
 # Copy fullpath of $1 to clipboard.
 cl () {
     if [[ "$1" == /* ]]; then
