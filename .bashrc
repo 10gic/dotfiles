@@ -20,7 +20,17 @@ shopt -s histappend
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
-PS1='\u@\h \w\\$ '
+# Only show 40 characters for path in PS1
+# http://stackoverflow.com/questions/1616678/bash-pwd-shortening
+_PS1 ()
+{
+    local pre= name="$1" length="$2";
+    [[ "$name" != "${name#$HOME/}" || -z "${name#$HOME}" ]] &&
+        pre+='~' name="${name#$HOME}" length=$[length-1];
+    ((${#name}>$length)) && name="/...${name:$[${#name}-length+4]}";
+    echo "$pre$name"
+}
+PS1='\u@\h $(_PS1 "$PWD" 40)\$ '
 
 # set titile, make it update dynamically
 # see also http://www.faqs.org/docs/Linux-mini/Xterm-Title.html#ss4.3
