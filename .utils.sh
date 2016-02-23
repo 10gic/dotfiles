@@ -15,7 +15,7 @@ fi
 case "$(uname -s)" in
     Linux|CYGWIN*)
         alias ls='ls --color=auto'
-        # In old (for example, 5.97) of `ls', --group-directories-first is not available.
+        # In old version (for example, 5.97) of `ls', --group-directories-first is not available.
         if ls --group-directories-first >/dev/null 2>&1; then
             alias ll='ls -lhFG --group-directories-first'
         else
