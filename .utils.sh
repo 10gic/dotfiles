@@ -15,7 +15,12 @@ fi
 case "$(uname -s)" in
     Linux|CYGWIN*)
         alias ls='ls --color=auto'
-        alias ll='ls -lhFG --group-directories-first'
+        # In old (for example, 5.97) of `ls', --group-directories-first is not available.
+        if ls --group-directories-first >/dev/null 2>&1; then
+            alias ll='ls -lhFG --group-directories-first'
+        else
+            alias ll='ls -lhFG'
+        fi
         alias grep='grep --color=auto'
         alias fgrep='fgrep --color=auto'
         alias egrep='egrep --color=auto'
