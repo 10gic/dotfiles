@@ -192,10 +192,33 @@ function emacs_stop {
     emacsclient --eval "(progn (setq kill-emacs-hook 'nil) (kill-emacs))"
 }
 
+function emacs_killall {
+    typeset user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
+    typeset pids=`pgrep -u ${user} emacs`;
+    if [ -n "$pids" ]; then
+        echo kill -9 $pids
+    else
+        echo "Cannot find any emacs process for user ${user}.";
+    fi
+}
+
 function emacs_status {
-    pids=`pgrep emacs`;
-    if [ $? -eq 0 ]; then
-        ps -f -p $pids;
+    typeset pids=`pgrep emacs`;
+    if [ -n "$pids" ]; then
+        case "$(uname -s)" in
+            CYGWIN*)
+                # In CYGWIN, "-p" option in ps can only accept ONE pid.
+                # So, show processes one by one.
+                set -- $pids;
+                while [ "$1" ]; do
+                    ps -f -p $1
+                    shift
+                done
+                ;;
+            *)
+                ps -f -p $pids;
+                ;;
+        esac
     else
         echo "Cannot find emacs process.";
     fi
@@ -292,6 +315,8 @@ function emn {
         em $filename
     fi
 }
+
+alias emq='emacs -q -nw'
 
 function ediff {
     typeset quoted1
