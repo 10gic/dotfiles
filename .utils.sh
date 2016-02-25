@@ -1,5 +1,10 @@
 # This file can be sourced by bash/ksh/zsh.
 #
+# Note for portability:
+# pgrep is not available in AIX by default.
+# whoami is not available in Solaris by default.
+# Hyphen (-) can not used in function name in ksh (Version AJM 93u+ 2012-08-01).
+#
 # Note for zsh: Following two options must be set before source this file.
 # setopt KSH_ARRAYS
 # setopt SH_WORD_SPLIT
@@ -83,13 +88,6 @@ export WINEARCH=win32
 if [ -f ~/.bcrc ]; then
     export BC_ENV_ARGS=~/.bcrc
 fi
-
-################################################################################
-# Note for portability:
-# Hyphen can not used in function name in ksh (Version AJM 93u+ 2012-08-01).
-# pgrep is not available in AIX by default.
-# whoami is not available in Solaris by default.
-
 
 mkcd () {
     mkdir -p "$1" && cd "$1";
