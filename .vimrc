@@ -1,4 +1,6 @@
-source $VIMRUNTIME/vimrc_example.vim
+if filereadable("$VIMRUNTIME/vimrc_example.vim")
+  source $VIMRUNTIME/vimrc_example.vim
+endif
 
 " set format of status line
 set statusline=
