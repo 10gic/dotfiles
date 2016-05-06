@@ -131,6 +131,15 @@ _ssh()
 }
 complete -F _ssh ssh
 
+################################################################################
+# Configuration in Mac OS.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    # After install bash-completion by running `brew install bash-completion`
+    # Following lines are needed.
+    if [ -f $(brew --prefix)/etc/bash_completion ]; then
+        . $(brew --prefix)/etc/bash_completion
+    fi
+fi
 
 ################################################################################
 if [ -f ~/.utils.sh ]; then
