@@ -175,6 +175,42 @@ dos2unix_() {
     done
 }
 
+# unzip file with encoding GBK.
+unzip_gbk() {
+    if [ ! "$1" ] ; then
+        echo 'Usage: unzip_gbk filename.zip'
+    fi
+    if [ -f ~/bin/unzip_gbk.py ]; then
+        python ~/bin/unzip_gbk.py $1
+    else
+        mkdir -p ~/bin;
+        cat << EOF >~/bin/unzip_gbk.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os
+import sys
+import zipfile
+
+print u"Processing File %s" % sys.argv[1].decode('utf-8')
+
+file = zipfile.ZipFile(sys.argv[1], "r")
+for gbkname in file.namelist():
+    utf8name = gbkname.decode('gbk')
+    print "Extracting %s" % utf8name
+    pathname = os.path.dirname(utf8name)
+    if not os.path.exists(pathname) and pathname != "":
+        os.makedirs(pathname)
+    if not os.path.exists(utf8name):
+        data = file.read(gbkname)
+        outfile = open(utf8name, "w")
+        outfile.write(data)
+        outfile.close()
+file.close()
+EOF
+    fi
+}
+
 ################################################################################
 ################################################################################
 ## helper functions for emacs
