@@ -121,7 +121,7 @@ cl () {
     case "$(uname -s)" in
         Linux|CYGWIN*)
             ## readlink -f option does not exist on Mac OS X
-            typeset normalpath=`readlink -nf $fullpath`;
+            typeset normalpath=`readlink -nf "$fullpath"`;
             ## test xsel
             xsel >/dev/null 2>&1
             if [ $? -eq 0 ]; then
