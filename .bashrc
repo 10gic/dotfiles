@@ -26,11 +26,11 @@ _PS1 ()
 {
     local pre="" name="$1" length="$2";
     [[ "$name" != "${name#$HOME/}" || -z "${name#$HOME}" ]] &&
-        pre+='~' name="${name#$HOME}" length=$[length-1];
+        pre+='~' name="${name#$HOME}" length=$((length-1));
     if [[ ${#name} -ge $length ]]; then
         local bef_dots_len=10;
         local bef_dots="${name:0:$bef_dots_len}";
-        name="${bef_dots}...${name:$[${#name}-length+bef_dots_len+3]}";
+        name="${bef_dots}...${name:$((${#name}-length+bef_dots_len+3))}";
     fi
     echo "$pre$name"
 }
@@ -110,7 +110,7 @@ cd_func ()
         [[ ${x2:0:1} == '~' ]] && x2="${HOME}${x2:1}"
         if [[ "${x2}" == "${the_new_dir}" ]]; then
             popd -n +$cnt 2>/dev/null 1>/dev/null
-            cnt=cnt-1
+            cnt=$((cnt-1))
         fi
     done
 
@@ -124,10 +124,9 @@ alias cd=cd_func
 # see also http://unix.stackexchange.com/questions/136351/autocomplete-server-names-for-ssh-and-scp
 _ssh()
 {
-    local cur prev opts
+    local cur opts
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
     opts=$(grep '^Host' ~/.ssh/config 2>/dev/null | awk '{print $2}')
 
     COMPREPLY=( $(compgen -W "$opts" -- ${cur}) )
@@ -140,8 +139,8 @@ complete -F _ssh ssh
 if [[ "$(uname -s)" == "Darwin" ]]; then
     # After install bash-completion by running `brew install bash-completion`
     # Following lines are needed.
-    if [ -f $(brew --prefix)/etc/bash_completion ]; then
-        . $(brew --prefix)/etc/bash_completion
+    if [ -f "$(brew --prefix)/etc/bash_completion" ]; then
+        . "$(brew --prefix)/etc/bash_completion"
     fi
 fi
 

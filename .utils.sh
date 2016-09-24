@@ -9,8 +9,8 @@
 # setopt KSH_ARRAYS
 # setopt SH_WORD_SPLIT
 
-if [ -d ~/bin ]; then
-    export PATH="~/bin:${PATH}"
+if [ -d "${HOME}/bin" ]; then
+    export PATH="${HOME}/bin:${PATH}"
 fi
 
 if [ -x /usr/bin/dircolors ]; then
@@ -104,7 +104,7 @@ rm_not () {
     typeset ignore_file;
     for ignore_file in "$@";
     do
-        ignore_files=${ignore_files}"-not -name ${ignore_file} ";
+        ignore_files="${ignore_files}-not -name ${ignore_file} ";
     done;
 
     find . $ignore_files -delete
@@ -121,23 +121,23 @@ cl () {
     case "$(uname -s)" in
         Linux|CYGWIN*)
             ## readlink -f option does not exist on Mac OS X
-            typeset normalpath=`readlink -nf "$fullpath"`;
+            typeset normalpath="$(readlink -nf "$fullpath")";
             ## test xsel
             xsel >/dev/null 2>&1
             if [ $? -eq 0 ]; then
                 # if xsel work normally, copy path to clipboard.
-                echo -n $normalpath | xsel -ib
+                echo -n "$normalpath" | xsel -ib
                 echo "$normalpath copied"
             else
-                echo $normalpath
+                echo "$normalpath"
             fi
             ;;
         Darwin)
-            echo -n $fullpath | pbcopy
+            echo -n "$fullpath" | pbcopy
             echo "$fullpath copied"
             ;;
         *)
-            echo $fullpath
+            echo "$fullpath"
             ;;
     esac
 }
@@ -146,7 +146,7 @@ cl () {
 kill_ipcs ()
 {
     # Default, whoami and "id -un" is not available in Solaris.
-    typeset user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
+    typeset user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
 
     typeset opt;
     for opt in -q -s -m
@@ -227,8 +227,8 @@ function emacs_stop {
 }
 
 function emacs_killall {
-    typeset user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
-    typeset pids=`pgrep -u ${user} emacs`;
+    typeset user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
+    typeset pids=$(pgrep -u ${user} emacs);
     if [ -n "$pids" ]; then
         echo kill -9 $pids
     else
@@ -237,7 +237,7 @@ function emacs_killall {
 }
 
 function emacs_status {
-    typeset pids=`pgrep emacs`;
+    typeset pids=$(pgrep emacs);
     if [ -n "$pids" ]; then
         case "$(uname -s)" in
             CYGWIN*)
@@ -268,7 +268,7 @@ function launch_by_emacs {
     while [[ $p_pid != 1 ]]
     do
         # ppid_cmd=`ps -p $p_pid -o cmd=` ## -o is not supported by ps in Cygwin
-        ppid_cmd=`ps -p $p_pid | tail -n 1`
+        ppid_cmd=$(ps -p $p_pid | tail -n 1)
         if [[ $ppid_cmd == *emacs* ]]; then
              return 1;
         fi
@@ -305,7 +305,7 @@ function get_ppid {
             typeset ppid=${stat[3]}    # get the fourth field
             echo $ppid   # "return vaule".
         else
-            typeset ppid=`ps -p $1 -o ppid=`;
+            typeset ppid=$(ps -p $1 -o ppid=);
             # The equal sign in "ppid=" suppresses the output of the header line
             echo $ppid
         fi
@@ -341,12 +341,12 @@ function emn {
     #echo "column:" $column;
     if [[ $line =~ ^[0-9]+$ ]]; then
         if [[ $column =~ ^[0-9]+$ ]]; then
-            em +$line:$column $filename
+            em +$line:$column "$filename"
         else
-            em +$line $filename
+            em +$line "$filename"
         fi
     else
-        em $filename
+        em "$filename"
     fi
 }
 
@@ -393,7 +393,7 @@ function ediff {
 ## usage: gdbbt <pid>
 ## like pstack, with more information (eg. line number) if compiled with "-g".
 gdbbt() {
-    typeset tmp=`mktemp /tmp/gdbbt.XXXXXX`
+    typeset tmp=$(mktemp /tmp/gdbbt.XXXXXX)
     echo thread apply all bt >"$tmp"
     gdb -batch -nx -q -x "$tmp" -p "$1"
     rm -f "$tmp"
@@ -422,10 +422,10 @@ gdbwait() {
     typeset prog_nm=$1
     typeset current_user=$USER
     # Backup old matching pid , we don't debug existing processes
-    typeset old_pids=`pgrep -u $current_user $prog_nm`
+    typeset old_pids=$(pgrep -u $current_user $prog_nm)
     typeset new_pid=""
     while [ "$new_pid" = "" ]; do
-        new_pid=`pgrep -u $current_user -n $prog_nm`
+        new_pid=$(pgrep -u $current_user -n $prog_nm)
         # -n in pgrep means newest matching processes
         if [[ "$new_pid" != "" ]]; then
             if [[ "$old_pids" == *$new_pid* ]]; then
@@ -479,8 +479,8 @@ cscope_query() {
         return
     fi
     if [ ! -a $PWD/cscope.output ]; then
-        typeset index_file=`mktemp /tmp/cscope.XXXXXX`
-        typeset list_file=`mktemp /tmp/cscope2.XXXXXX`
+        typeset index_file=$(mktemp /tmp/cscope.XXXXXX)
+        typeset list_file=$(mktemp /tmp/cscope2.XXXXXX)
         if command -v cscope-indexer >/dev/null 2>&1; then
             cscope-indexer -f $index_file -i $list_file -r
         else
@@ -501,7 +501,7 @@ cscope_generate_list () {
     if [ $# -ge 1 ]; then
         list_file=$1
     fi
-    ( find $PWD \( -type f -o -type l \) ) | \
+    ( find "$PWD" \( -type f -o -type l \) ) | \
         egrep -i '\.([chly](xx|pp)*|cc|hh)$' | \
         sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
         sort > $list_file
@@ -520,7 +520,7 @@ startvm () {
     # start vm in headless mode
     VBoxManage startvm $vmname --type headless
     # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
-    typeset ip=`VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}'`
+    typeset ip=$(VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}')
     if [ -z $ip ]; then
         echo "Cannot obtain ip of $vmname"
     else
