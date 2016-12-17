@@ -217,6 +217,28 @@ EOF
     fi
 }
 
+# convert decimal to hex, support big number
+10to16() {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: 10to16 number'
+        return
+    fi
+    typeset num="$1"
+    typeset result=`python -c "print(hex(${num}))"`
+    # The result may contains trailing 'L', remove it.
+    echo ${result%L}
+}
+
+# convert hex to decimal, support big number
+16to10() {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: 16to10 number'
+        return
+    fi
+    typeset num="$1"
+    python -c "print(int(\"${num}\", 16))"
+}
+
 ################################################################################
 ################################################################################
 ## helper functions for emacs
