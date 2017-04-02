@@ -427,9 +427,21 @@ org2pdf () {
     fi
 
     typeset outputdir="$2"
-    if [ -n ${outputdir} ] && [ ! -d ${outputdir} ]; then
+    if [ -n "${outputdir}" ] && [ ! -d "${outputdir}" ]; then
         echo "Directory ${outputdir} does not exist, do nothing."
         return;
+    fi
+
+    ## There are issues when export latex file with svg image.
+    ## If svg image exist in file, change [[./xxx/file.svg]] to [[./xxx/file.pdf]]
+    ## Note: Please make sure there is corresponding pdf image,
+    ## If not, you can convert svg to pdf by `inkscape -f file.svg -A file.pdf;`
+    typeset containsvg="false"
+    if fgrep -q '.svg]]' "${orgfile}"; then
+        containsvg="true"
+        ## remove svg, save it to filename.nosvg.org
+        sed 's/.svg\]\]/.pdf\]\]/g' "${orgfile}" > "${orgfile/%org/nosvg.org}"
+        orgfile="${orgfile/%org/nosvg.org}"
     fi
 
     typeset EMACS=emacs
@@ -452,9 +464,15 @@ org2pdf () {
                     (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
     fi
 
-    if [ -s ${orgfile/%org/pdf} ]; then
-        if [ -n ${outputdir} ]; then
-            mv "${orgfile/%org/pdf}" "${outputdir}"
+    typeset pdf="${orgfile/%org/pdf}"
+    if [ -s "${pdf}" ]; then
+        if [ ${containsvg} = "true" ]; then
+            ## cp filename.nosvg.pdf filename.pdf
+            cp "${pdf}" "${pdf/%nosvg.pdf/pdf}"
+            pdf="${pdf/%nosvg.pdf/pdf}"
+        fi
+        if [ -n "${outputdir}" ]; then
+            mv "${pdf}" "${outputdir}"
         fi
         echo "Generate pdf for ${orgfile} finished."
     else
