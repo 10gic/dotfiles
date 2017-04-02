@@ -127,17 +127,17 @@ cl () {
             if [ $? -eq 0 ]; then
                 # if xsel work normally, copy path to clipboard.
                 echo -n "$normalpath" | xsel -ib
-                echo "$normalpath copied"
+                echo "$normalpath is copied to clipboard"
             else
-                echo "$normalpath"
+                echo "$normalpath is not copied to clipboard"
             fi
             ;;
         Darwin)
             echo -n "$fullpath" | pbcopy
-            echo "$fullpath copied"
+            echo "$fullpath is copied to clipboard"
             ;;
         *)
-            echo "$fullpath"
+            echo "$fullpath is not copied to clipboard"
             ;;
     esac
 }
@@ -413,6 +413,40 @@ function ediff {
     fi
 }
 
+# export org file into pdf
+org2pdf () {
+    typeset orgfile="$1"
+    if [ ! -e ${orgfile} ]; then
+        echo "File ${orgfile} does not exist, do nothing."
+        return;
+    fi
+
+    typeset EMACS=emacs
+    if [[ "$(uname -s)" == "Darwin" ]] && [[ -x /Applications/Emacs.app/Contents/MacOS/Emacs ]]; then
+        EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs
+    fi
+
+    echo "Begin generating pdf for ${orgfile}"
+    if [ -e ~/.emacs.d/customize-org.el ]; then
+        $EMACS -batch -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
+               "(progn
+                    (setq org-export-allow-bind-keywords t
+                          org-confirm-babel-evaluate nil)
+                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
+    else
+        $EMACS -batch -f toggle-debug-on-error -eval \
+               "(progn
+                    (setq org-export-allow-bind-keywords t
+                          org-confirm-babel-evaluate nil)
+                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
+    fi
+
+    if [ -s ${orgfile/%org/pdf} ]; then
+        echo "Generate pdf for ${orgfile} finished."
+    else
+        echo "Fail to generate pdf for ${orgfile}."
+    fi
+}
 
 ################################################################################
 ################################################################################
@@ -547,13 +581,9 @@ startvm () {
     fi
     # start vm in headless mode
     VBoxManage startvm $vmname --type headless
-    # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
-    typeset ip=$(VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}')
-    if [ -z $ip ]; then
-        echo "Cannot obtain ip of $vmname"
-    else
-        echo "$vmname ip may be $ip"
-    fi
+
+    checkvmip $vmname;
+    echo "You can run 'checkvmip ${vmname}' to check the ip of vm."
 }
 
 # usage: stopvm [your_vmname]
@@ -565,4 +595,20 @@ stopvm () {
     fi
     # shutdown virtual machine
     VBoxManage controlvm $vmname poweroff
+}
+
+# usage: checkvmip [your_vmname]
+# checkvmip virtual machine
+checkvmip () {
+    typeset vmname="$1"
+    if [ ! "$1" ] ; then
+        vmname="Debian8"   # My default virtual machine name.
+    fi
+    # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
+    typeset ip=$(VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}')
+    if [ -z $ip ]; then
+        echo "Cannot obtain ip of $vmname"
+    else
+        echo "$vmname ip may be $ip"
+    fi
 }
