@@ -415,6 +415,11 @@ function ediff {
 
 # export org file into pdf
 org2pdf () {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: org2pdf filename.org'
+        return
+    fi
+
     typeset orgfile="$1"
     if [ ! -e ${orgfile} ]; then
         echo "File ${orgfile} does not exist, do nothing."
