@@ -415,14 +415,20 @@ function ediff {
 
 # export org file into pdf
 org2pdf () {
-    if [ ${#@} -ne 1 ]; then
-        echo 'Usage: org2pdf filename.org'
+    if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ]; then
+        echo 'Usage: org2pdf filename.org [output_dir]'
         return
     fi
 
     typeset orgfile="$1"
     if [ ! -e ${orgfile} ]; then
         echo "File ${orgfile} does not exist, do nothing."
+        return;
+    fi
+
+    typeset outputdir="$2"
+    if [ -n ${outputdir} ] && [ ! -d ${outputdir} ]; then
+        echo "Directory ${outputdir} does not exist, do nothing."
         return;
     fi
 
@@ -447,6 +453,9 @@ org2pdf () {
     fi
 
     if [ -s ${orgfile/%org/pdf} ]; then
+        if [ -n ${outputdir} ]; then
+            mv "${orgfile/%org/pdf}" "${outputdir}"
+        fi
         echo "Generate pdf for ${orgfile} finished."
     else
         echo "Fail to generate pdf for ${orgfile}."
