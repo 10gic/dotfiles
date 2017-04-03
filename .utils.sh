@@ -474,9 +474,9 @@ org2pdf () {
         if [ -n "${outputdir}" ]; then
             mv "${pdf}" "${outputdir}"
         fi
-        echo "Generate pdf for ${orgfile} finished."
+        echo "Generate pdf for $1 finished."
     else
-        echo "Fail to generate pdf for ${orgfile}."
+        echo "Fail to generate pdf for $1."
     fi
 }
 
