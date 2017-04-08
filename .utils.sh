@@ -415,9 +415,15 @@ function ediff {
 
 # export org file into pdf
 org2pdf () {
-    if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ]; then
-        echo 'Usage: org2pdf filename.org [output_dir]'
+    if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ] && [ ${#@} -ne 3 ]; then
+        echo 'Usage: org2pdf [-k] filename.org [output_dir]'
         return
+    fi
+
+    typeset removelogfiles=t     # nil or t (default)
+    if [ "$1" = "-k" ]; then
+        removelogfiles=nil
+        shift
     fi
 
     typeset orgfile="$1"
@@ -433,7 +439,7 @@ org2pdf () {
     fi
 
     ## There are issues when export latex file with svg image.
-    ## If svg image exist in file, change [[./xxx/file.svg]] to [[./xxx/file.pdf]]
+    ## If svg image exist in file, change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
     ## Note: Please make sure there is corresponding pdf image,
     ## If not, you can convert svg to pdf by `inkscape -f file.svg -A file.pdf;`
     typeset containsvg="false"
@@ -442,6 +448,18 @@ org2pdf () {
         ## remove svg, save it to filename.nosvg.org
         sed 's/.svg\]\]/.pdf\]\]/g' "${orgfile}" > "${orgfile/%org/nosvg.org}"
         orgfile="${orgfile/%org/nosvg.org}"
+    fi
+
+    ## There are issues when export latex file with gif image.
+    ## If gif image exist in file, change [[./xxx/image.gif]] to [[./xxx/image.pdf]]
+    ## Note: Please make sure there is corresponding pdf image,
+    ## If not, you can convert gif to pdf by `sips -s format pdf file.gif --out file.pdf;` in Mac
+    typeset containgif="false"
+    if fgrep -q '.gif]]' "${orgfile}"; then
+        containgif="true"
+        ## remove gif, save it to filename.nogif.org
+        sed 's/.gif\]\]/.pdf\]\]/g' "${orgfile}" > "${orgfile/%org/nogif.org}"
+        orgfile="${orgfile/%org/nogif.org}"
     fi
 
     typeset EMACS=emacs
@@ -454,23 +472,35 @@ org2pdf () {
         $EMACS -batch -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
                "(progn
                     (setq org-export-allow-bind-keywords t
-                          org-confirm-babel-evaluate nil)
+                          org-confirm-babel-evaluate nil
+                          org-latex-remove-logfiles ${removelogfiles})
                     (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
     else
         $EMACS -batch -f toggle-debug-on-error -eval \
                "(progn
                     (setq org-export-allow-bind-keywords t
                           org-confirm-babel-evaluate nil)
+                    (setq org-latex-pdf-process
+                          '(\"xelatex -interaction nonstopmode -output-directory %o %f\"
+                            \"xelatex -interaction nonstopmode -output-directory %o %f\"
+                            \"xelatex -interaction nonstopmode -output-directory %o %f\"))
                     (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
     fi
 
     typeset pdf="${orgfile/%org/pdf}"
     if [ -s "${pdf}" ]; then
+        ## Here, the pdf file name may be filename.nosvg.nogif.pdf
+        if [ ${containgif} = "true" ]; then
+            ## cp filename.nogif.pdf filename.pdf
+            cp "${pdf}" "${pdf/%nogif.pdf/pdf}"
+            pdf="${pdf/%nogif.pdf/pdf}"
+        fi
         if [ ${containsvg} = "true" ]; then
             ## cp filename.nosvg.pdf filename.pdf
             cp "${pdf}" "${pdf/%nosvg.pdf/pdf}"
             pdf="${pdf/%nosvg.pdf/pdf}"
         fi
+
         if [ -n "${outputdir}" ]; then
             mv "${pdf}" "${outputdir}"
         fi
