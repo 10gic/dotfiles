@@ -342,7 +342,7 @@ function get_ppid {
     fi
 }
 
-function em {
+function emc {
     # If current shell is created by emacs (M-x term), then
     #  open file with -n (--no-wait) option in current emacs frame.
     launch_by_emacs
@@ -369,16 +369,16 @@ function emn {
     #echo "column:" $column;
     if [[ $line =~ ^[0-9]+$ ]]; then
         if [[ $column =~ ^[0-9]+$ ]]; then
-            em +$line:$column "$filename"
+            emc +$line:$column "$filename"
         else
-            em +$line "$filename"
+            emc +$line "$filename"
         fi
     else
-        em "$filename"
+        emc "$filename"
     fi
 }
 
-alias emq='emacs -q -nw'
+alias em='emacs -q -nw'
 
 function ediff {
     typeset quoted1
