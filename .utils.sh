@@ -89,6 +89,7 @@ if [ -f ~/.bcrc ]; then
     export BC_ENV_ARGS=~/.bcrc
 fi
 
+# mkdir and cd the new directory
 mkcd () {
     mkdir -p "$1" && cd "$1";
 }
@@ -246,15 +247,18 @@ EOF
 # emacsclient of Aquamacs (A emacs variant in Mac OS X). Just hard-code it.
 emacsclient_mac=/Applications/Aquamacs.app/Contents/MacOS/bin/emacsclient
 
-function emacs_start {
+# start emacs daemon
+emacs_start() {
     LC_CTYPE=zh_CN.UTF-8 emacs --daemon
 }
 
-function emacs_stop {
+# stop emacs daemon
+emacs_stop() {
     emacsclient --eval "(progn (setq kill-emacs-hook 'nil) (kill-emacs))"
 }
 
-function emacs_killall {
+# kill all emacs process
+emacs_killall() {
     typeset user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
     typeset pids=$(pgrep -u ${user} emacs);
     if [ -n "$pids" ]; then
@@ -264,7 +268,8 @@ function emacs_killall {
     fi
 }
 
-function emacs_status {
+# check emacs status
+emacs_status() {
     typeset pids=$(pgrep emacs);
     if [ -n "$pids" ]; then
         case "$(uname -s)" in
@@ -290,7 +295,7 @@ function emacs_status {
 # Return 0 if it's not launched by emacs
 # Return 1 if it's launched by emacs
 # Return 2 if it's launched by Aquamacs
-function launch_by_emacs {
+launch_by_emacs() {
     typeset p_pid=$PPID
     typeset ppid_cmd
     while [[ $p_pid != 1 ]]
@@ -313,15 +318,21 @@ function launch_by_emacs {
     return 0
 }
 
+# Get the parent process ID of process $1.
+#
 # The caller can user this method to get ppid: var1=$(get-ppid pid)
 #
 # The keyword "return" can only return a number between 0 and 255.
 # But, ppid may greater than 255, so cannot use "return".
 #
-# Note 1: Please do NOT use other "echo" statments in this function.
+# Note 1: Please do NOT echo others into stdout in this function.
 # Note 2: ps in Cygwin does not support -o option.
 # Note 3: Mac OS X, for example Yosemite, does not have directory /proc
-function get_ppid {
+get_ppid() {
+    if [ ! "$1" ] ; then
+        echo 'Usage: get_ppid pid' 1>&2;  # print usage into stderr
+        echo '-1'  # error
+    fi
     # First, check if is number.
     if [[ $1 =~ ^[0-9]+$ ]]; then
         #echo "debug. get-ppid arg: "$1 >1.log
@@ -338,11 +349,11 @@ function get_ppid {
             echo $ppid
         fi
     else
-        echo "-1"  # error
+        echo '-1'  # error
     fi
 }
 
-function emc {
+emc() {
     # If current shell is created by emacs (M-x term), then
     #  open file with -n (--no-wait) option in current emacs frame.
     launch_by_emacs
@@ -356,7 +367,7 @@ function emc {
     fi
 }
 
-function emn {
+emn() {
     typeset str=$1
     typeset -a array
     array=(${str//:/ })
@@ -369,18 +380,18 @@ function emn {
     #echo "column:" $column;
     if [[ $line =~ ^[0-9]+$ ]]; then
         if [[ $column =~ ^[0-9]+$ ]]; then
-            emc +$line:$column "$filename"
+            em +$line:$column "$filename"
         else
-            emc +$line "$filename"
+            em +$line "$filename"
         fi
     else
-        emc "$filename"
+        em "$filename"
     fi
 }
 
 alias em='emacs -q -nw'
 
-function ediff {
+ediff() {
     typeset quoted1
     typeset quoted2
     # diff two files
