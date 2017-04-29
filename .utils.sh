@@ -244,6 +244,8 @@ EOF
 ################################################################################
 ## helper functions for emacs
 
+alias em='emacs -q -nw'
+
 # emacsclient of Aquamacs (A emacs variant in Mac OS X). Just hard-code it.
 emacsclient_mac=/Applications/Aquamacs.app/Contents/MacOS/bin/emacsclient
 
@@ -388,8 +390,6 @@ emn() {
         em "$filename"
     fi
 }
-
-alias em='emacs -q -nw'
 
 ediff() {
     typeset quoted1
