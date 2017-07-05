@@ -32,6 +32,7 @@ case "$(uname -s)" in
         alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
         ;;
     Darwin)
+        export LSCOLORS='Exfxcxdxbxegedabagacad'   # set for lighter blue directories in mac
         alias ls='ls -G'
         alias ll='ls -lhF'
         alias grep='grep --color=auto'
