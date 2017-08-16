@@ -106,6 +106,7 @@ rm_not () {
     typeset ignore_file;
     for ignore_file in "$@";
     do
+        ignore_file="${ignore_file/%\//}"  # remove trailing '/', for example: dir1/ -> dir1
         ignore_files="${ignore_files}-not -name ${ignore_file} ";
     done;
 
