@@ -523,6 +523,32 @@ org2pdf () {
     fi
 }
 
+findPdfsWithKeywordMeta() {
+    if [ ${#@} -ne 2 ]; then
+        echo 'Usage: findPdfsWithKeywordInDir dirname keyword'
+        return
+    fi
+    typeset dir=$1
+    typeset keyword=$2
+
+    typeset output
+    typeset keywords
+    if [ -d ${dir} ]; then
+        # Example of exiftool output (exiftool -Keywords ${dir}/*.pdf)
+        # ======== file1.pdf
+        # Keywords                        : test1
+        # ======== file2.pdf
+        # Keywords                        : test2
+        exiftool -Keywords ${dir}/*.pdf | egrep -i "^Keywords *:.*${keyword}.*" -B 1 | grep '^========' | cut -d ' ' -f 2-
+    else
+        if [ ! -a ${dir} ]; then
+            echo "directory $dir is not existing"
+        else
+            echo "$dir is not a directory"
+        fi
+    fi
+}
+
 ################################################################################
 ################################################################################
 ## helper functions for gdb
