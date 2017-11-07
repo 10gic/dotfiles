@@ -430,7 +430,7 @@ ediff() {
 org2pdf () {
     if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ] && [ ${#@} -ne 3 ]; then
         echo 'Usage: org2pdf [-k] filename.org [output_dir]'
-        return
+        return 1
     fi
 
     typeset removelogfiles=t     # nil or t (default)
@@ -442,13 +442,13 @@ org2pdf () {
     typeset orgfile="$1"
     if [ ! -e ${orgfile} ]; then
         echo "File ${orgfile} does not exist, do nothing."
-        return;
+        return 1;
     fi
 
     typeset outputdir="$2"
     if [ -n "${outputdir}" ] && [ ! -d "${outputdir}" ]; then
         echo "Directory ${outputdir} does not exist, do nothing."
-        return;
+        return 1;
     fi
 
     ## There are issues when export latex file with svg image.
@@ -518,8 +518,10 @@ org2pdf () {
             mv "${pdf}" "${outputdir}"
         fi
         echo "Generate pdf for $1 finished."
+        return 0;
     else
         echo "Fail to generate pdf for $1."
+        return 1;
     fi
 }
 
