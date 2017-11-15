@@ -1,0 +1,265 @@
+#!/bin/bash
+
+# export org file into pdf
+# Dependencies:
+# 1. Emacs
+# 2. xelatex
+# 3. inkscape (if org file include svg file)
+# 4. exiftool (if org file include gif file)
+# 5. ImageMagick (if org file include gif file)
+
+log_level=3
+
+log_err() {
+    if [[ $log_level -ge 1 ]]; then
+        printf "[error] $@\n" >&2
+    fi
+}
+
+log_warn() {
+    if [[ $log_level -ge 2 ]]; then
+        printf "[warn] $@\n" >&2
+    fi
+}
+
+log_info() {
+    if [[ $log_level -ge 3 ]]; then
+        printf "[info] $@\n" >&2
+    fi
+}
+
+main() {
+    if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ] && [ ${#@} -ne 3 ]; then
+        echo 'Usage: org2pdf [-k] input.org [output_dir]' >&2;
+        echo '' >&2;
+        echo '-k, keep intermediate files' >&2;
+        exit 1
+    fi
+
+    local removelogfiles=t     # nil or t (default)
+    if [ "$1" = "-k" ]; then
+        removelogfiles=nil
+        shift
+    fi
+
+    local orgfile="$1"
+    if [ ! -e ${orgfile} ]; then
+        log_err "File ${orgfile} does not exist, do nothing."
+        exit 1;
+    fi
+
+    local outputdir="$2"
+    if [ -n "${outputdir}" ] && [ ! -d "${outputdir}" ]; then
+        log_err "Directory ${outputdir} does not exist, do nothing."
+        exit 1;
+    fi
+
+    ## There are issues when export latex file with svg image.
+    local containsvg="false"
+    if fgrep -q '.svg]]' "${orgfile}"; then
+        containsvg="true"
+
+        workaround_for_svg "${orgfile}" "${orgfile/%org/nosvg.org}"
+        orgfile="${orgfile/%org/nosvg.org}"
+    fi
+
+    ## There are issues when export latex file with gif image.
+    local containgif="false"
+    if fgrep -q '.gif]]' "${orgfile}"; then
+        containgif="true"
+
+        workaround_for_gif "${orgfile}" "${orgfile/%org/nogif.org}"
+        orgfile="${orgfile/%org/nogif.org}"
+    fi
+
+    local EMACS=emacs
+    if [[ "$(uname -s)" == "Darwin" ]] && [[ -x /Applications/Emacs.app/Contents/MacOS/Emacs ]]; then
+        EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs
+    fi
+
+    echo "Begin generating pdf for ${orgfile}"
+    if [ -e ~/.emacs.d/customize-org.el ]; then
+        $EMACS -batch -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
+               "(progn
+                    (setq org-export-allow-bind-keywords t
+                          org-confirm-babel-evaluate nil
+                          org-latex-remove-logfiles ${removelogfiles})
+                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
+    else
+        $EMACS -batch -f toggle-debug-on-error -eval \
+               "(progn
+                    (setq org-export-allow-bind-keywords t
+                          org-confirm-babel-evaluate nil
+                          org-latex-remove-logfiles ${removelogfiles})
+                    (setq org-latex-pdf-process
+                          '(\"xelatex -interaction nonstopmode -output-directory %o %f\"
+                            \"xelatex -interaction nonstopmode -output-directory %o %f\"
+                            \"xelatex -interaction nonstopmode -output-directory %o %f\"))
+                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
+    fi
+
+    local pdf="${orgfile/%org/pdf}"
+    if [ -s "${pdf}" ]; then
+        ## Here, the pdf file name may be filename.nosvg.nogif.pdf
+        if [ ${containgif} = "true" ]; then
+            ## cp filename.nogif.pdf filename.pdf
+            cp "${pdf}" "${pdf/%nogif.pdf/pdf}"
+            pdf="${pdf/%nogif.pdf/pdf}"
+        fi
+        if [ ${containsvg} = "true" ]; then
+            ## cp filename.nosvg.pdf filename.pdf
+            cp "${pdf}" "${pdf/%nosvg.pdf/pdf}"
+            pdf="${pdf/%nosvg.pdf/pdf}"
+        fi
+
+        if [ -n "${outputdir}" ]; then
+            mv "${pdf}" "${outputdir}"
+        fi
+        log_info "Generate pdf for $1 finished."
+        exit 0;
+    else
+        log_err "Fail to generate pdf for $1."
+        exit 1;
+    fi
+}
+
+## If svg image exist in file, change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
+## Note: Please make sure there is corresponding pdf image,
+## If not, PLEASE convert svg to pdf (for example: `inkscape -f file.svg -A file.pdf;`)
+workaround_for_svg() {
+    local in_file=$1
+    local out_file=$2
+    local temp_file=$(mktemp /tmp/org2pdf.XXXXXX)
+    cp "$in_file" "$temp_file"
+    for svg_file in $(grep '^\[\[.*svg\]\]$' "${in_file}");
+    do
+        svg_file=${svg_file#??}  # change [[./xxx/image.svg]] to ./xxx/image.svg]]
+        svg_file=${svg_file%??}  # change ./xxx/image.svg]] to ./xxx/image.svg
+        local pdf_file=${svg_path/%svg/pdf}
+        if [ ! -s ${pdf_file} ]; then
+            # convert svg to pdf if pdf does not exsit
+            log_info "Convert svg file ${svg_path} to pdf."
+            ## sips -s format pdf ${path} --out ${pdf_file}
+            inkscape --without-gui -f $svg_file -A ${pdf_file}
+            if [[ ! -s ${pdf_file} ]]; then
+                log_err "Convert svg ${svg_path} to ${pdf_file} failed, skip this svg."
+                continue;
+            fi
+        fi
+
+        ## change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
+        sed -i.bak "s@^\[\[${svg_file}\]\]@[[${svg_file/%svg/pdf}]]@" "$temp_file"
+        echo sed -i.bak "s@^\[\[${svg_file}\]\]@[[${svg_file/%svg/pdf}]]@" "$temp_file"
+    done
+    cp "$temp_file" "$out_file"
+    # log_info $temp_file
+    rm -rf "$temp_file"
+}
+
+## If gif image exist in file, change [[./xxx/image.gif]] to [[./xxx/image.pdf]]
+## Note: Please make sure there is corresponding pdf image,
+## If not, you can convert gif to pdf by `sips -s format pdf file.gif --out file.pdf;` in Mac
+workaround_for_gif() {
+    local in_file=$1
+    local out_file=$2
+    local temp_file=$(mktemp /tmp/org2pdf.XXXXXX)
+    cp "$in_file" "$temp_file"
+    for gif_file in $(grep '^\[\[.*gif\]\]$' "${in_file}");
+    do
+        gif_file=${gif_file#??}  # change [[./xxx/image.gif]] to ./xxx/image.gif]]
+        gif_file=${gif_file%??}  # change ./xxx/image.gif]] to ./xxx/image.gif
+        local dir=$(dirname "${in_file}")
+        local gifpath=${dir}/${gif_file}
+        local gifbasenm=$(basename ${gifpath})
+        if [[ ! -a $gifpath ]]; then
+            log_warn "Gif file ${gifpath} does not exist, skip this gif."
+            continue;
+        fi
+
+        local frameNum;
+        frameNum=$(exiftool -FrameCount ${gifpath});
+        ## An example of exiftool output:
+        ## Frame Count                     : 212
+        if [[ $? -ne 0 ]]; then
+            log_err "Get frame count of gif ${gifpath} failed, skip this gif."
+            continue;
+        fi
+        frameNum=$(echo $frameNum | awk -F': ' '{print $2}')  # only get number (for example 212)
+        if [[ "$frameNum" -gt 1 ]]; then
+            # If the gif is an animated gif
+
+            log_info "Gif file ${gifpath} contains ${frameNum} frames."
+
+            # convert file.gif to multiple files: file_frames/frame-0.png, file_frames/frame-1.png, etc.
+            local gif_expend_dir="${gifpath%.gif}_frames"
+            mkdir -p "${gif_expend_dir}"
+            convert -coalesce ${gifpath} "${gif_expend_dir}/frame.png"
+            if [[ $? -ne 0 ]]; then
+                log_err "Convert gif ${gifpath} to multiple png failed, skip this gif."
+                continue;
+            fi
+            local dura=$(exiftool -Duration ${gifpath} | awk -F': ' '{print $2}' | awk '{print $1}')
+            # An example of `exiftool -Duration file.gif`:
+            # Duration                        : 16.96 s
+            local frameRate=$(echo "scale=2; ${frameNum}/${dura}" |bc) # specifies the number of frames per second of the animation
+            local lastNum=$((${frameNum}-1))           # first number is 0, so last number is frameNum -1
+            local label=$(grep -B 10 "\[\[${gif_file}\]\]" "${in_file}" | awk '{if ($1=="#+NAME:") print $2}' | tail -n 1)
+            if [[ -z $label ]]; then
+                log_warn "Can't get label for image $gif_file"
+                label="NOLABLE"
+            fi
+            local caption=$(grep -B 10 "\[\[${gif_file}\]\]" "${in_file}" | awk '{if ($1=="#+CAPTION:") print $2}' | tail -n 1)
+            if [[ -z $caption ]]; then
+                log_warn "Can't get caption for image $gif_file"
+                caption="NOCAPTION"
+            fi
+            local width=$(grep -B 10 "\[\[${gif_file}\]\]" "${in_file}" | awk '{if ($1=="#+ATTR_LATEX:" && $2==":width") print $3}' | tail -n 1)
+            local widthStr=""
+            if [[ -z $width ]]; then
+                : # log_warn "Can't get width for image $gif_file"
+            else
+                widthStr=",width=${width}"
+            fi
+            sed -i.bak "s@^\[\[${gif_file}\]\]@\\\\begin{figure}\[!htbp\]\\
+\\\\centering\\
+  \\\\animategraphics\[controls ${widthStr}\]{${frameRate}}{${gif_file%.gif}_frames/frame-}{0}{${lastNum}}\\
+\\\\caption{\\\\label{${label}} ${caption}}\\
+\\\\end{figure}\\
+@" "$temp_file"
+            # #+ATTR_LATEX: :width 500pt
+            # #+NAME: fig:test_3
+            # #+CAPTION: $ab=c$ test
+            # [[./images/test.gif]
+            # ---------->
+            # \begin{figure}[!htbp]
+            # \centering
+            #   \animategraphics[controls, width=500pt]{2}{test_frames/}{1}{3}
+            # \caption{\label{fig:test_3} $ab=c$ test}
+            # \end{figure}
+            #
+            # NOTE: need \usepackage{animate}
+        else
+            # If the gif only contains one frame (not an animated gif).
+
+            log_info "Gif file ${gifpath} contains only one frame, change gif to pdf."
+            local pdf_file=${gifpath/%gif/pdf}
+            if [ ! -s ${pdf_file} ]; then
+                log_info "Convert gif file ${gifpath} to pdf."
+                # convert gif to pdf if pdf does not exsit
+                sips -s format pdf ${gifpath} --out ${pdf_file}
+                if [[ ! -s ${pdf_file} ]]; then
+                    log_err "Convert gif ${gifpath} to ${pdf_file} failed, skip this gif."
+                    continue;
+                fi
+            fi
+
+            ## change [[./xxx/image.gif]] to [[./xxx/image.pdf]]
+            sed -i.bak "s@^\[\[${gif_file}\]\]@[[${gif_file/%gif/pdf}]]@" "$temp_file"
+        fi
+    done
+    cp "$temp_file" "$out_file"
+    # log_info $temp_file
+    rm -rf "$temp_file"
+}
+
+main "$@"

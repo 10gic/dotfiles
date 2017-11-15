@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# usage: perl_ftrace fun1,fun2 yourprogram.pl [arguments]
+# Prerequisite: Debug::LTrace
+if [ ${#@} -lt 2 ]; then
+    echo "usage: perl_ftrace fun1,fun2 yourprogram.pl [arguments]"
+    exit 1;
+fi
+
+fun=$1
+prog=$2
+args=$3
+
+PERL5LIB="$HOME/.perllib":$PERL5LIB perl -MDebug::LTrace="$fun" -- "$prog" $args

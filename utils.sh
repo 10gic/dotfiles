@@ -184,42 +184,6 @@ dos2unix_() {
     done
 }
 
-# unzip file with encoding GBK.
-unzip_gbk() {
-    if [ ! "$1" ] ; then
-        echo 'Usage: unzip_gbk filename.zip'
-    fi
-    if [ -f ~/bin/unzip_gbk.py ]; then
-        python ~/bin/unzip_gbk.py $1
-    else
-        mkdir -p ~/bin;
-        cat << EOF >~/bin/unzip_gbk.py
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import os
-import sys
-import zipfile
-
-print u"Processing File %s" % sys.argv[1].decode('utf-8')
-
-file = zipfile.ZipFile(sys.argv[1], "r")
-for gbkname in file.namelist():
-    utf8name = gbkname.decode('gbk')
-    print "Extracting %s" % utf8name
-    pathname = os.path.dirname(utf8name)
-    if not os.path.exists(pathname) and pathname != "":
-        os.makedirs(pathname)
-    if not os.path.exists(utf8name):
-        data = file.read(gbkname)
-        outfile = open(utf8name, "w")
-        outfile.write(data)
-        outfile.close()
-file.close()
-EOF
-    fi
-}
-
 # convert decimal to hex, support big number
 10to16() {
     if [ ${#@} -ne 1 ]; then
@@ -426,131 +390,6 @@ ediff() {
     fi
 }
 
-# export org file into pdf
-org2pdf () {
-    if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ] && [ ${#@} -ne 3 ]; then
-        echo 'Usage: org2pdf [-k] filename.org [output_dir]'
-        return 1
-    fi
-
-    typeset removelogfiles=t     # nil or t (default)
-    if [ "$1" = "-k" ]; then
-        removelogfiles=nil
-        shift
-    fi
-
-    typeset orgfile="$1"
-    if [ ! -e ${orgfile} ]; then
-        echo "File ${orgfile} does not exist, do nothing."
-        return 1;
-    fi
-
-    typeset outputdir="$2"
-    if [ -n "${outputdir}" ] && [ ! -d "${outputdir}" ]; then
-        echo "Directory ${outputdir} does not exist, do nothing."
-        return 1;
-    fi
-
-    ## There are issues when export latex file with svg image.
-    ## If svg image exist in file, change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
-    ## Note: Please make sure there is corresponding pdf image,
-    ## If not, you can convert svg to pdf by `inkscape -f file.svg -A file.pdf;`
-    typeset containsvg="false"
-    if fgrep -q '.svg]]' "${orgfile}"; then
-        containsvg="true"
-        ## remove svg, save it to filename.nosvg.org
-        sed 's/.svg\]\]/.pdf\]\]/g' "${orgfile}" > "${orgfile/%org/nosvg.org}"
-        orgfile="${orgfile/%org/nosvg.org}"
-    fi
-
-    ## There are issues when export latex file with gif image.
-    ## If gif image exist in file, change [[./xxx/image.gif]] to [[./xxx/image.pdf]]
-    ## Note: Please make sure there is corresponding pdf image,
-    ## If not, you can convert gif to pdf by `sips -s format pdf file.gif --out file.pdf;` in Mac
-    typeset containgif="false"
-    if fgrep -q '.gif]]' "${orgfile}"; then
-        containgif="true"
-        ## remove gif, save it to filename.nogif.org
-        sed 's/.gif\]\]/.pdf\]\]/g' "${orgfile}" > "${orgfile/%org/nogif.org}"
-        orgfile="${orgfile/%org/nogif.org}"
-    fi
-
-    typeset EMACS=emacs
-    if [[ "$(uname -s)" == "Darwin" ]] && [[ -x /Applications/Emacs.app/Contents/MacOS/Emacs ]]; then
-        EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs
-    fi
-
-    echo "Begin generating pdf for ${orgfile}"
-    if [ -e ~/.emacs.d/customize-org.el ]; then
-        $EMACS -batch -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
-               "(progn
-                    (setq org-export-allow-bind-keywords t
-                          org-confirm-babel-evaluate nil
-                          org-latex-remove-logfiles ${removelogfiles})
-                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
-    else
-        $EMACS -batch -f toggle-debug-on-error -eval \
-               "(progn
-                    (setq org-export-allow-bind-keywords t
-                          org-confirm-babel-evaluate nil)
-                    (setq org-latex-pdf-process
-                          '(\"xelatex -interaction nonstopmode -output-directory %o %f\"
-                            \"xelatex -interaction nonstopmode -output-directory %o %f\"
-                            \"xelatex -interaction nonstopmode -output-directory %o %f\"))
-                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
-    fi
-
-    typeset pdf="${orgfile/%org/pdf}"
-    if [ -s "${pdf}" ]; then
-        ## Here, the pdf file name may be filename.nosvg.nogif.pdf
-        if [ ${containgif} = "true" ]; then
-            ## cp filename.nogif.pdf filename.pdf
-            cp "${pdf}" "${pdf/%nogif.pdf/pdf}"
-            pdf="${pdf/%nogif.pdf/pdf}"
-        fi
-        if [ ${containsvg} = "true" ]; then
-            ## cp filename.nosvg.pdf filename.pdf
-            cp "${pdf}" "${pdf/%nosvg.pdf/pdf}"
-            pdf="${pdf/%nosvg.pdf/pdf}"
-        fi
-
-        if [ -n "${outputdir}" ]; then
-            mv "${pdf}" "${outputdir}"
-        fi
-        echo "Generate pdf for $1 finished."
-        return 0;
-    else
-        echo "Fail to generate pdf for $1."
-        return 1;
-    fi
-}
-
-findPdfsWithKeywordMeta() {
-    if [ ${#@} -ne 2 ]; then
-        echo 'Usage: findPdfsWithKeywordInDir dirname keyword'
-        return
-    fi
-    typeset dir=$1
-    typeset keyword=$2
-
-    typeset output
-    typeset keywords
-    if [ -d ${dir} ]; then
-        # Example of exiftool output (exiftool -Keywords ${dir}/*.pdf)
-        # ======== file1.pdf
-        # Keywords                        : test1
-        # ======== file2.pdf
-        # Keywords                        : test2
-        exiftool -Keywords ${dir}/*.pdf | egrep -i "^Keywords *:.*${keyword}.*" -B 1 | grep '^========' | cut -d ' ' -f 2-
-    else
-        if [ ! -a ${dir} ]; then
-            echo "directory $dir is not existing"
-        else
-            echo "$dir is not a directory"
-        fi
-    fi
-}
-
 ################################################################################
 ################################################################################
 ## helper functions for gdb
@@ -604,24 +443,6 @@ gdbwait() {
 
 # Do not print the introductory and copyright messages in gdb.
 alias gdb='gdb -q'
-
-################################################################################
-################################################################################
-## helper functions for perl
-
-# usage: perl_ftrace fun1,fun2 yourprogram.pl [arguments]
-# Prerequisite: Debug::LTrace
-perl_ftrace () {
-    if [ ${#@} -lt 2 ]; then
-        echo "usage: perl_ftrace fun1,fun2 yourprogram.pl [arguments]"
-        return
-    fi
-    typeset fun=$1
-    typeset prog=$2
-    typeset args=$3
-    PERL5LIB="$HOME/.perllib":$PERL5LIB perl -MDebug::LTrace="$fun" -- "$prog" $args
-}
-
 
 ################################################################################
 ## helper functions for cscope

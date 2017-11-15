@@ -1,38 +1,47 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
-_cp_into_home ()
+_make_link ()
 {
-    if [ -z "$1" ]; then
+    if [ ${#@} -ne 2 ]; then
+        echo "Usage: _make_link soure target" 1>&2
         return
     fi
-    # backup old file
-    if [ -a "${HOME}/$1" ]; then
-        if [ -d "${HOME}/$1" ]; then
-            rm -rf "${HOME}/$1.bk"
-        fi
-        mv "${HOME}/$1" "${HOME}/$1.bk"
+    local source="$1"
+    local target="$2"
+    if [[ ( ! -a "$target" ) || -L "$target" ]]; then
+        # if target does not exist or target is symbolic link, just update it
+        rm -f "${target}"
+        ln -s "${source}" "${target}"
+    else
+        echo "${target} exists (and it's not a symbolic link), you must update it manually." 1>&2
     fi
-    # copy it into HOME
-    cp -rf "$1" "${HOME}/"
 }
 
 FILE_LIST="
-.bashrc
-.utils.sh
-.perllib
-.vimrc
+bashrc
+utils.sh
+perllib
+vimrc
 "
 
 for file in $FILE_LIST; do
-    _cp_into_home $file
+    ## example: bashrc ----> ${HOME}/.bashrc
+    _make_link "${PWD}/${file}" "${HOME}/.${file}"
 done
 
-# first check zsh is avaiable
+# make link for zshrc only zsh is avaiable
 if command -v zsh >/dev/null 2>&1; then
-    _cp_into_home .zshrc
+    _make_link "${PWD}/zshrc" "${HOME}/.zshrc"
 fi
 
-# first check gdb is avaiable
+# make link for gdbinit only gdb is avaiable
 if command -v gdb >/dev/null 2>&1; then
-    _cp_into_home .gdbinit
+    _make_link "${PWD}/gdbinit" "${HOME}/.gdbinit"
 fi
+
+# update utils in ./bin/
+mkdir -p "${HOME}/bin"
+for util in $(ls ./bin/); do
+    chmod u+x "${PWD}/bin/${util}"
+    _make_link "${PWD}/bin/${util}" "${HOME}/bin/${util}"
+done
