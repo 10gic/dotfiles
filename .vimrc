@@ -1,4 +1,5 @@
-if filereadable("$VIMRUNTIME/vimrc_example.vim")
+let basevimrc = $VIMRUNTIME . '/vimrc_example.vim'
+if filereadable(basevimrc)
   source $VIMRUNTIME/vimrc_example.vim
 endif
 
