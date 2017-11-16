@@ -84,7 +84,7 @@ main() {
                     (setq org-export-allow-bind-keywords t
                           org-confirm-babel-evaluate nil
                           org-latex-remove-logfiles ${removelogfiles})
-                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
+                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))" 2>>emacs.log
     else
         $EMACS -batch -f toggle-debug-on-error -eval \
                "(progn
@@ -95,7 +95,7 @@ main() {
                           '(\"xelatex -interaction nonstopmode -output-directory %o %f\"
                             \"xelatex -interaction nonstopmode -output-directory %o %f\"
                             \"xelatex -interaction nonstopmode -output-directory %o %f\"))
-                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))"
+                    (find-file \"${orgfile}\") (org-latex-export-to-pdf))" 2>>emacs.log
     fi
 
     local pdf="${orgfile/%org/pdf}"
@@ -118,7 +118,7 @@ main() {
         log_info "Generate pdf for $1 finished."
         exit 0;
     else
-        log_err "Fail to generate pdf for $1."
+        log_err "Fail to generate pdf for $1, see log ${PWD}/emacs.log"
         exit 1;
     fi
 }
@@ -149,7 +149,6 @@ workaround_for_svg() {
 
         ## change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
         sed -i.bak "s@^\[\[${svg_file}\]\]@[[${svg_file/%svg/pdf}]]@" "$temp_file"
-        echo sed -i.bak "s@^\[\[${svg_file}\]\]@[[${svg_file/%svg/pdf}]]@" "$temp_file"
     done
     cp "$temp_file" "$out_file"
     # log_info $temp_file
@@ -241,7 +240,7 @@ workaround_for_gif() {
         else
             # If the gif only contains one frame (not an animated gif).
 
-            log_info "Gif file ${gifpath} contains only one frame, change gif to pdf."
+            # log_info "Gif file ${gifpath} contains only one frame, change gif to pdf."
             local pdf_file=${gifpath/%gif/pdf}
             if [ ! -s ${pdf_file} ]; then
                 log_info "Convert gif file ${gifpath} to pdf."
