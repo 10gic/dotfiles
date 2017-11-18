@@ -16,6 +16,7 @@ if [ -z ${pid} ]; then
         for java_pid in ${java_pids}
         do
             if [[ $candidate == $java_pid ]]; then
+                echo "Java process $candidate has highest cpu consumption."
                 pid=$candidate
                 break 2;   # out of both inner and outer for loops
             fi
@@ -62,7 +63,7 @@ else
             break;
         }
     }
-    if (count > 3) {             # print stack if its details stack info exsit
+    if (count > 4) {             # print stack if its details stack info exsit
        print lines;
     }
 }'
