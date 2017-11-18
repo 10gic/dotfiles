@@ -1,0 +1,71 @@
+#!/bin/bash
+
+if [ ${#@} -gt 1 ]; then
+    echo 'This tool find the java thread with highest cpu consumption.' >&2;
+    echo 'Usage: top_java_thread [java_pid]' >&2;
+    exit 1
+fi
+
+pid=$1
+if [ -z ${pid} ]; then
+    # If no pid is provided, find java pid with highest cpu consumption
+    pids_sort_by_cpu=$(ps aux | awk '{if ($3 != "%CPU" && $3 != "0.0") print $2}')
+    java_pids=$(jps | cut -d' ' -f1)
+    for candidate in ${pids_sort_by_cpu}
+    do
+        for java_pid in ${java_pids}
+        do
+            if [[ $candidate == $java_pid ]]; then
+                pid=$candidate
+                break 2;   # out of both inner and outer for loops
+            fi
+        done
+    done
+fi
+if [ -z ${pid} ]; then
+    echo 'Cannot find java process with cpu consumption.'
+    exit 1;
+fi
+
+os=$(uname -s)
+if [[ ${os} == "Linux" ]]; then
+    # Example of output of top:
+    #  top - 02:58:57 up 45 days, 21:40,  4 users,  load average: 0.00, 0.00, 0.00
+    #  Tasks: 259 total,   1 running, 231 sleeping,   1 stopped,  1 zombie
+    #  Cpu(s):  0.2%us,  0.6%sy,  0.0%ni, 99.1%id,  0.1%wa,  0.0%hi,  0.0%si,  0.0%st
+    #  Mem:  62285152k total, 30033540k used, 32251612k free,  1816104k buffers
+    #  Swap: 34930680k total,        0k used, 34930680k free, 20438292k cached
+    #
+    #    PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND
+    #   5355 cig01     20   0 13268 1160  764 R  2.0  0.0   0:00.01 top
+    #      1 root      20   0 25652 1548 1240 S  0.0  0.0   0:13.34 init
+    #      2 root      20   0     0    0    0 S  0.0  0.0   0:00.00 kthreadd
+    tid=$(top -b -n 1 -H -p ${pid} | grep -A 1 PID | tail -1 | awk '{if ($9 != "0.0") print $1}')
+    if [[ -z ${tid} ]]; then
+        echo "No thread in pid ${pid} hogs the cpu."
+        exit 1
+    fi
+
+    # echo ${tid}
+    tid_hex=$(printf '0x%x' ${tid})
+    # echo ${tid_hex}
+    jstack ${pid} | sed -n "/nid=${tid_hex}/,/^$/p"
+else
+    # Just dump stack, filter out threads that no stacks shown.
+    jstack ${pid} | awk '/nid=.*runnable/ {   # only show runnable thread
+    lines=$0
+    count=1;
+    while ((getline line) > 0 ) {
+        lines=lines"\n"line      # concate line
+        count++;
+        if (length(line) == 0) { # check empty line (empty line means another thread begins)
+            break;
+        }
+    }
+    if (count > 3) {             # print stack if its details stack info exsit
+       print lines;
+    }
+}'
+    echo "NOTE: This tool does not support your os ${os}, just dump stack!"
+    exit 1
+fi
