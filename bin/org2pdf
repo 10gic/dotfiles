@@ -135,12 +135,16 @@ workaround_for_svg() {
     do
         svg_file=${svg_file#??}  # change [[./xxx/image.svg]] to ./xxx/image.svg]]
         svg_file=${svg_file%??}  # change ./xxx/image.svg]] to ./xxx/image.svg
+
+        local dir=$(dirname "${in_file}")
+        local svg_path=${dir}/${svg_file}
         local pdf_file=${svg_path/%svg/pdf}
         if [ ! -s ${pdf_file} ]; then
             # convert svg to pdf if pdf does not exsit
             log_info "Convert svg file ${svg_path} to pdf."
-            ## sips -s format pdf ${path} --out ${pdf_file}
-            inkscape --without-gui -f $svg_file -A ${pdf_file}
+            cd $(dirname "${svg_path}")     # inkscape may fail if we don't enter dir
+            inkscape --without-gui -f "$PWD"/$(basename "$svg_file") -A "$PWD"/$(basename "${pdf_file}")
+            cd -
             if [[ ! -s ${pdf_file} ]]; then
                 log_err "Convert svg ${svg_path} to ${pdf_file} failed, skip this svg."
                 continue;
@@ -187,7 +191,7 @@ workaround_for_gif() {
         if [[ "$frameNum" -gt 1 ]]; then
             # If the gif is an animated gif
 
-            log_info "Gif file ${gifpath} contains ${frameNum} frames."
+            # log_info "Gif file ${gifpath} contains ${frameNum} frames."
 
             # convert file.gif to multiple files: file_frames/frame-0.png, file_frames/frame-1.png, etc.
             local gif_expend_dir="${gifpath%.gif}_frames"
