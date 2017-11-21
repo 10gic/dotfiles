@@ -10,15 +10,19 @@
 
 log_level=3
 
+YELLOW='\033[01;33m'  # bold yellow
+RED='\033[01;31m'     # bold red
+RESET='\033[00;00m'   # normal white
+
 log_err() {
     if [[ $log_level -ge 1 ]]; then
-        printf "[error] $@\n" >&2
+        printf "[${RED}error${RESET}] $@\n" >&2
     fi
 }
 
 log_warn() {
     if [[ $log_level -ge 2 ]]; then
-        printf "[warn] $@\n" >&2
+        printf "[${YELLOW}warn${RESET}] $@\n" >&2
     fi
 }
 
@@ -77,7 +81,7 @@ main() {
         EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs
     fi
 
-    echo "Begin generating pdf for ${orgfile}"
+    log_info "Begin generating pdf for $1."
     if [ -e ~/.emacs.d/customize-org.el ]; then
         $EMACS -batch -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
                "(progn
@@ -123,6 +127,35 @@ main() {
     fi
 }
 
+## Find all [[xxxxx.svg]] (svg can customized by $2) in file, but filter out it if it just before #+END_EXAMPLE
+##
+## [[./images/example1.svg]]        #### would print ./images/example1.svg
+## [[./images/example2.svg]]        #### would print ./images/example2.svg
+## ......
+## #+BEGIN_EXAMPLE
+## [[./images/example3.svg]]        <=== would NOT print this images as it just before #+END_EXAMPLE
+## #+END_EXAMPLE
+get_images() {
+    local file=$1
+    local image_suffix=$2       # image_suffix example: svg, gif
+    awk -v fn=${file} -v pattern=${image_suffix} '$0 ~ "^\\[\\[.*\\."pattern"\\]\\]$" {   # eg. [[xxxxxx.svg]]
+    checklines=2;       # only check next 2 lines
+    find_end_example=0;
+    while (((getline line) > 0) && (checklines > 0)) {
+        checklines--;
+        if (toupper(line) == "#+END_EXAMPLE") {
+            find_end_example=1;
+            break;
+        }
+    }
+    if (find_end_example == 1) {
+        print "Find "$0" in file "fn" is just before #+END_EXAMPLE, skip this image" > "/dev/stderr"
+    } else {
+        print substr($0, 3, length($0) - 4)  # remove first and last two characters, i.e. [[xxxxxx.svg]]  ---> xxxxxx.svg
+    }
+}' "${file}"
+}
+
 ## If svg image exist in file, change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
 ## Note: Please make sure there is corresponding pdf image,
 ## If not, PLEASE convert svg to pdf (for example: `inkscape -f file.svg -A file.pdf;`)
@@ -131,11 +164,8 @@ workaround_for_svg() {
     local out_file=$2
     local temp_file=$(mktemp /tmp/org2pdf.XXXXXX)
     cp "$in_file" "$temp_file"
-    for svg_file in $(grep '^\[\[.*svg\]\]$' "${in_file}");
+    for svg_file in $(get_images "${in_file}" "svg");
     do
-        svg_file=${svg_file#??}  # change [[./xxx/image.svg]] to ./xxx/image.svg]]
-        svg_file=${svg_file%??}  # change ./xxx/image.svg]] to ./xxx/image.svg
-
         local dir=$(dirname "${in_file}")
         local svg_path=${dir}/${svg_file}
         local pdf_file=${svg_path/%svg/pdf}
@@ -167,10 +197,8 @@ workaround_for_gif() {
     local out_file=$2
     local temp_file=$(mktemp /tmp/org2pdf.XXXXXX)
     cp "$in_file" "$temp_file"
-    for gif_file in $(grep '^\[\[.*gif\]\]$' "${in_file}");
+    for gif_file in $(get_images "${in_file}" "gif");
     do
-        gif_file=${gif_file#??}  # change [[./xxx/image.gif]] to ./xxx/image.gif]]
-        gif_file=${gif_file%??}  # change ./xxx/image.gif]] to ./xxx/image.gif
         local dir=$(dirname "${in_file}")
         local gifpath=${dir}/${gif_file}
         local gifbasenm=$(basename ${gifpath})
