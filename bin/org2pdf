@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# export org file into pdf
+# Convert org file into pdf
 # Dependencies:
 # 1. Emacs
 # 2. xelatex
@@ -34,6 +34,7 @@ log_info() {
 
 main() {
     if [ ${#@} -ne 1 ] && [ ${#@} -ne 2 ] && [ ${#@} -ne 3 ]; then
+        echo 'This tool converts orgmode file to pdf.' >&2;
         echo 'Usage: org2pdf [-k] input.org [output_dir]' >&2;
         echo '' >&2;
         echo '-k, keep intermediate files' >&2;
@@ -58,20 +59,20 @@ main() {
         exit 1;
     fi
 
-    ## There are issues when export latex file with svg image.
-    local containsvg="false"
-    if fgrep -q '.svg]]' "${orgfile}"; then
-        containsvg="true"
+    ## Add width for images, eg. #+ATTR_LATEX: :width 300px
+    if fgrep -q '#+ATTR_HTML:' "${orgfile}"; then
+        patch_with_latex_width "${orgfile}" "${orgfile/%org/addwidth.org}"
+        orgfile="${orgfile/%org/addwidth.org}"
+    fi
 
+    ## There are issues when export latex file with svg image.
+    if fgrep -q '.svg]]' "${orgfile}"; then
         workaround_for_svg "${orgfile}" "${orgfile/%org/nosvg.org}"
         orgfile="${orgfile/%org/nosvg.org}"
     fi
 
     ## There are issues when export latex file with gif image.
-    local containgif="false"
     if fgrep -q '.gif]]' "${orgfile}"; then
-        containgif="true"
-
         workaround_for_gif "${orgfile}" "${orgfile/%org/nogif.org}"
         orgfile="${orgfile/%org/nogif.org}"
     fi
@@ -104,20 +105,10 @@ main() {
 
     local pdf="${orgfile/%org/pdf}"
     if [ -s "${pdf}" ]; then
-        ## Here, the pdf file name may be filename.nosvg.nogif.pdf
-        if [ ${containgif} = "true" ]; then
-            ## cp filename.nogif.pdf filename.pdf
-            cp "${pdf}" "${pdf/%nogif.pdf/pdf}"
-            pdf="${pdf/%nogif.pdf/pdf}"
-        fi
-        if [ ${containsvg} = "true" ]; then
-            ## cp filename.nosvg.pdf filename.pdf
-            cp "${pdf}" "${pdf/%nosvg.pdf/pdf}"
-            pdf="${pdf/%nosvg.pdf/pdf}"
-        fi
-
+        local target="${1/%org/pdf}"
+        mv "${pdf}" "${target}"
         if [ -n "${outputdir}" ]; then
-            mv "${pdf}" "${outputdir}"
+            mv "${target}" "${outputdir}"
         fi
         log_info "Generate pdf for $1 finished."
         exit 0;
@@ -125,6 +116,69 @@ main() {
         log_err "Fail to generate pdf for $1, see log ${PWD}/emacs.log"
         exit 1;
     fi
+}
+
+patch_with_latex_width() {
+    local in_file=$1
+    local out_file=$2
+    awk -v fn="$in_file" '
+{
+    print $0;
+    if ($0 ~ /^#\+ATTR_HTML:.*:width/) {      # example of $0:  #+ATTR_HTML: :width 300px
+        width="";
+        for(i = 1; i <= NF; i++) {
+            if ($i == ":width") {
+                width=$(i+1)
+                break;
+            }
+        }
+
+        checklines=2;         # only check next 2 lines
+        needpatch=1;
+        nextlines="";         # backup lines read by getline
+        while ((getline line) > 0) {
+            checklines--;
+            if (nextlines == "") {
+                nextlines = line;
+            } else {
+                nextlines = nextlines"\n"line;
+            }
+
+            if (toupper(line) == "#+END_EXAMPLE") {
+                ## find "#+END_EXAMPLE" in following line, do nothing.
+                print "Skip converting width in line "FNR" ["$0"] in file "fn  > "/dev/stderr"
+                needpatch=0;
+                break;
+            }
+            if (match(toupper(line), /^#\+ATTR_LATEX:.*:WIDTH .*/)) {
+                ## already has "#+ATTR_LATEX: :width", do nothing.
+                print "Already has ATTR_LATEX width after line "FNR" ["$0"] in file "fn", skip it"  > "/dev/stderr"
+                needpatch=0;
+                break;
+            }
+            if (checklines == 0) { break; }
+        }
+
+        if (width == "") {
+            print "Cannot find value of width in line ["$0"] in file "fn  > "/dev/stderr"
+        } else if (match(width, /^[0-9]+px$/)) {
+            # Only support 100px, 230px, etc.
+            if (needpatch == 1) {
+                # do following converting.
+                # 100px  (ATTR_HTML)  ------>   60pt (ATTR_LATEX)
+                # 200px  (ATTR_HTML)  ------>   120pt (ATTR_LATEX)
+                width=substr(width, 1, length(width) - 2)    # remove suffix "px"
+                width=0.6*width
+                print "#+ATTR_LATEX: :width "width"pt";
+            }
+        } else {
+            if (needpatch == 1) {
+                print "Does not support convert width in line ["$0"] to counterpart"  > "/dev/stderr"
+            }
+        }
+        print nextlines;
+    }
+}' "$in_file" >"$out_file"
 }
 
 ## Find all [[xxxxx.svg]] (svg can customized by $2) in file, but filter out it if it just before #+END_EXAMPLE
