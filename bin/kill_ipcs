@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# This tool remove ALL System V IPC resources belong to current user (or specified user).
+if [ ${#@} -ne 1 ] && [ ${#@} -ne 0 ]; then
+    echo 'This tool remove ALL System V IPC resources belong to specified user.' >&2;
+    echo 'Usage: kill_ipcs [user_name]' >&2;
+    exit 1
+fi
+
+user="$1"
+if [ ! "$1" ]; then
+    # Default, whoami and "id -un" is not available in Solaris.
+    user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
+fi
+
+read -r -p "Are you sure to kill all System V IPC resources belong to ${user}? [y/N] " response
+case "$response" in
+    [yY][eE][sS]|[yY])
+        ;;
+    *)
+        exit 1;
+        ;;
+esac
+
+for opt in -q -s -m
+do
+    # NOTE: Use grep to find matched user, false negative errors are POSSIBLE.
+    # In output of ipcs, the msqid/shmid/semid is the second column (awk $2).
+    ipcs $opt | grep " ${user} " | awk '{print "ipcrm ""'$opt'",$2}' | sh -x
+done

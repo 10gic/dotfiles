@@ -132,7 +132,7 @@ cl () {
                 echo -n "$normalpath" | xsel -ib
                 echo "$normalpath is copied to clipboard"
             else
-                echo "$normalpath is not copied to clipboard"
+                echo "$normalpath is NOT copied to clipboard"
             fi
             ;;
         Darwin)
@@ -140,31 +140,10 @@ cl () {
             echo "$fullpath is copied to clipboard"
             ;;
         *)
-            echo "$fullpath is not copied to clipboard"
+            echo "$fullpath is NOT copied to clipboard"
             ;;
     esac
 }
-
-# Remove ALL System V IPC objects belong to current user.
-kill_ipcs ()
-{
-    typeset user;
-    if [ ! "$1" ]; then
-        # Default, whoami and "id -un" is not available in Solaris.
-        user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
-    else
-        user="$1"
-    fi
-
-    typeset opt;
-    for opt in -q -s -m
-    do
-        # Use grep to find matched user, false negative errors are possible.
-        # In output of ipcs, the msqid/shmid/semid is the second column ($2).
-        ipcs $opt | grep " ${user} " | awk '{print "ipcrm ""'$opt'",$2}' | sh -x
-    done
-}
-alias ipcs_kill=kill_ipcs
 
 # You don't need it if dos2unix is available.
 dos2unix_() {
