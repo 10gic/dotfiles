@@ -60,7 +60,7 @@ main() {
     fi
 
     ## Add width for images, eg. #+ATTR_LATEX: :width 300px
-    if fgrep -q '#+ATTR_HTML:' "${orgfile}"; then
+    if grep -q '^\[\[.*\]\]$' "${orgfile}"; then
         patch_with_latex_width "${orgfile}" "${orgfile/%org/addwidth.org}"
         orgfile="${orgfile/%org/addwidth.org}"
     fi
@@ -83,9 +83,16 @@ main() {
     fi
 
     log_info "Begin generating pdf for $1."
+    local pdf="${orgfile%.org}.pdf"
+    if [ -s "${pdf}" ]; then
+        log_warn "File ${pdf} exsits before generating, it's removed."
+        rm "${pdf}"
+    fi
+    local neworgdir=${HOME}/.emacs.d/packages/extract/org-*/
     if [ -e ~/.emacs.d/customize-org.el ]; then
-        $EMACS -batch -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
+        $EMACS -batch -L ${neworgdir}/lisp -L ${neworgdir}/contrib/lisp -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
                "(progn
+                    (message (concat \"debug: org version=\" (org-version)))
                     (setq org-export-allow-bind-keywords t
                           org-confirm-babel-evaluate nil
                           org-latex-remove-logfiles ${removelogfiles})
@@ -103,13 +110,16 @@ main() {
                     (find-file \"${orgfile}\") (org-latex-export-to-pdf))" 2>>emacs.log
     fi
 
-    local pdf="${orgfile/%org/pdf}"
     if [ -s "${pdf}" ]; then
         local target="${1/%org/pdf}"
         mv "${pdf}" "${target}"
         if [ -n "${outputdir}" ]; then
             mv "${target}" "${outputdir}"
         fi
+        ##if [[ "$removelogfiles" == "t" ]]; then
+        ##    rm -f ${1%org}*addwidth*.org ${1%org}*nosvg*.org ${1%org}*nogif*.org
+        ##    rm -f ${1%org}*addwidth*.tex ${1%org}*nosvg*.tex ${1%org}*nogif*.tex
+        ##fi
         log_info "Generate pdf for $1 finished."
         exit 0;
     else
@@ -118,65 +128,160 @@ main() {
     fi
 }
 
+## Patch image with latex width
+## NOTE: The previous line of image must be org tag (e.g. #+CAPTION or #+ATTR_HTML, etc)
 patch_with_latex_width() {
     local in_file=$1
     local out_file=$2
-    awk -v fn="$in_file" '
+    awk -v YELLOW="$YELLOW" -v RESET="$RESET" -v fn="$in_file" '
+function log_warn(msg) {
+    printf("[%swarn%s] (awk) %s\n", YELLOW, RESET, msg)  > "/dev/stderr"
+}
+function log_info(msg) {
+    ## If you need more debug info, you can comment out following line
+    #printf("[info] (awk) %s\n", msg)  > "/dev/stderr"
+}
+function dirname(pathname){
+    if (!sub(/\/[^\/]*\/?$/, "", pathname)) { # this may change pathname
+        return "."
+    } else if (pathname != "") {
+        return pathname
+    } else {
+        return "/"
+    }
+}
+function getWidth(img,      cmd, output, arr, ret){
+    cmd = "exiftool -ImageWidth "img
+    cmd | getline output
+    close(cmd)
+    # Example of output variable:
+    # Image Width                     : 354
+    if (output == "") {
+        return "";
+    } else {
+        # Get last field, e.g "354" in example “Image Width                     : 354”.
+        ret=arr[split(output, arr, ": ")];
+        if (match(ret, /^[0-9.]+$/)) {
+            # if no unit, then append "px".
+            return ret"px";
+        } else {
+            return ret;
+        }
+    }
+}
+
+BEGIN {
+    imgtag_regex="^\\[\\[.*\\.((jpg)|(jpeg)|(png)|(gif)|(svg)|(bmp))\\]\\]$"
+}
+
 {
     print $0;
-    if ($0 ~ /^#\+ATTR_HTML:.*:width/) {      # example of $0:  #+ATTR_HTML: :width 300px
-        width="";
-        for(i = 1; i <= NF; i++) {
-            if ($i == ":width") {
-                width=$(i+1)
+    if ($0 == "#+BEGIN_EXAMPLE") {
+        # Eat and print all lines before #+END_EXAMPLE, we donot neet parse it
+        while ((getline line) > 0) {
+            print line
+            ## print "Skip line ["line"], it is inclosed with EXAMPLE in file"fn > "/dev/stderr"
+            if (line == "#+END_EXAMPLE") {
                 break;
             }
         }
-
-        checklines=2;         # only check next 2 lines
-        needpatch=1;
-        nextlines="";         # backup lines read by getline
+    } else if ($0 ~ /^#\+[a-zA-Z0-9_-]+: /) {   # Find org tag (starts with #+). e.g. #+CAPTION: or #+ATTR_HTML:
+        imgName="";
+        isImgTag=0;
+        needPatch=1;
+        nextLines="";         # backup lines read by function getline in while loop
         while ((getline line) > 0) {
-            checklines--;
-            if (nextlines == "") {
-                nextlines = line;
+            if (nextLines == "") {
+                nextLines = line;
             } else {
-                nextlines = nextlines"\n"line;
-            }
-
-            if (toupper(line) == "#+END_EXAMPLE") {
-                ## find "#+END_EXAMPLE" in following line, do nothing.
-                print "Skip converting width in line "FNR" ["$0"] in file "fn  > "/dev/stderr"
-                needpatch=0;
-                break;
+                nextLines = nextLines"\n"line;
             }
             if (match(toupper(line), /^#\+ATTR_LATEX:.*:WIDTH .*/)) {
-                ## already has "#+ATTR_LATEX: :width", do nothing.
-                print "Already has ATTR_LATEX width after line "FNR" ["$0"] in file "fn", skip it"  > "/dev/stderr"
-                needpatch=0;
-                break;
+                needPatch=0;              # do not need patch if there is ATTR_LATEX in line
             }
-            if (checklines == 0) { break; }
+            if (substr(line, 1, 2) == "#+") {
+                # find another org tag, do nothing, continue eat next line
+            } else if (match(line, imgtag_regex)) {      # find image, e.g. [[./xxx.jpg]]
+                imgName=substr(line, 3, length(line) - 4)  # remove leading [[ and trailing ]]
+                isImgTag=1;
+                break;
+            } else {
+                break;    # empty line or other line, break it
+            }
         }
 
-        if (width == "") {
-            print "Cannot find value of width in line ["$0"] in file "fn  > "/dev/stderr"
-        } else if (match(width, /^[0-9]+px$/)) {
-            # Only support 100px, 230px, etc.
-            if (needpatch == 1) {
+        if (match(toupper($0), /^#\+ATTR_LATEX:.*:WIDTH .*/)) {
+            needPatch=0;   # do not need patch if there is ATTR_LATEX in $0
+        }
+
+        if ((isImgTag == 1) && (needPatch == 1)) {
+            width="";
+            # First, try to get width from $0
+            if ($0 ~ /^#\+ATTR_HTML:.*:width/) {
+                for(i = 1; i <= NF; i++) {
+                    if ($i == ":width") {
+                        width=$(i+1)
+                        break;
+                     }
+                }
+            }
+            # Then, try to get width from nextLines
+            if (width == "") {
+                n=split(nextLines, a, "\n");
+                for(j=1; j<=n; j++){
+                    if (match(a[j], /^#\+ATTR_HTML:.*:width/)) {
+                        m=split(a[j], b, " ");
+                        for(k = 1; k <= m; k++) {
+                            if (b[k] == ":width") {
+                                width=b[k+1]
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            # Finally, try to get width by external tool
+            if (width == "") {
+                log_info("Get width for "imgName" by external tool");
+                if (substr(imgName, 1, 5) == "file:") {
+                    # change “file:./img/xx.jpg” ---> “./img/xx.jpg”
+                    imgName = substr(imgName, 6)
+                }
+                if (substr(imgName, 1, 1) != "/") {
+                    # it is not full path, it is relative to org file
+                    dir=dirname(fn);
+                    if (dir != ".") {
+                        imgName = dir"/"imgName;   # change it relative to org file
+                    }
+                }
+                width = getWidth(imgName);
+                if ((width != "") && (match(imgName, /\.svg$/))) {  # check endswith .svg
+                    log_warn("Width of "imgName" got from its metadata, it is vector graphics! You probability need change width.");
+                }
+            }
+            if (width == "") {
+                log_warn("Cannot get width for "imgName" by external tool");
+            } else if (match(width, /^[0-9.]+px$/)) {
+                # for unit px
                 # do following converting.
                 # 100px  (ATTR_HTML)  ------>   60pt (ATTR_LATEX)
                 # 200px  (ATTR_HTML)  ------>   120pt (ATTR_LATEX)
                 width=substr(width, 1, length(width) - 2)    # remove suffix "px"
                 width=0.6*width
-                print "#+ATTR_LATEX: :width "width"pt";
-            }
-        } else {
-            if (needpatch == 1) {
-                print "Does not support convert width in line ["$0"] to counterpart"  > "/dev/stderr"
+                width=width"pt"
+                printf("#+ATTR_LATEX: :width %s\n", width);
+                log_info("Add width "width" for "imgName" in file "fn);
+            } else if (match(width, /^[0-9.]+pt$/)) {
+                # for unit pt
+                printf("#+ATTR_LATEX: :width %s\n", width);
+                log_info("Add width "width" for "imgName" in file "fn);
+            } else {
+                log_warn("Does not support add width for image "imgName", the real width=["width"]");
             }
         }
-        print nextlines;
+        print nextLines;
+    } else if (match($0, imgtag_regex)) {
+        log_warn("Skip add width for "$0" as there is no org tag in previus line in file "fn);
     }
 }' "$in_file" >"$out_file"
 }
@@ -187,27 +292,15 @@ patch_with_latex_width() {
 ## [[./images/example2.svg]]        #### would print ./images/example2.svg
 ## ......
 ## #+BEGIN_EXAMPLE
-## [[./images/example3.svg]]        <=== would NOT print this images as it just before #+END_EXAMPLE
+## [[./images/example3.svg]]        <=== would NOT print this images as it is inclosed in #+BEGIN_EXAMPLE and #+END_EXAMPLE
 ## #+END_EXAMPLE
-get_images() {
+get_image_list() {
     local file=$1
     local image_suffix=$2       # image_suffix example: svg, gif
-    awk -v fn=${file} -v pattern=${image_suffix} '$0 ~ "^\\[\\[.*\\."pattern"\\]\\]$" {   # eg. [[xxxxxx.svg]]
-    checklines=2;       # only check next 2 lines
-    find_end_example=0;
-    while (((getline line) > 0) && (checklines > 0)) {
-        checklines--;
-        if (toupper(line) == "#+END_EXAMPLE") {
-            find_end_example=1;
-            break;
-        }
-    }
-    if (find_end_example == 1) {
-        print "Find "$0" in file "fn" is just before #+END_EXAMPLE, skip this image" > "/dev/stderr"
-    } else {
-        print substr($0, 3, length($0) - 4)  # remove first and last two characters, i.e. [[xxxxxx.svg]]  ---> xxxxxx.svg
-    }
-}' "${file}"
+    sed -n '/^#+BEGIN_EXAMPLE$/, /^#+END_EXAMPLE$/ !p' "${file}" | awk -v fn=${file} -v pattern=${image_suffix} '
+$0 ~ "^\\[\\[.*\\."pattern"\\]\\]$" {    # eg. [[xxxxxx.svg]]
+    print substr($0, 3, length($0) - 4)  # remove first and last two characters, i.e. [[xxxxxx.svg]]  ---> xxxxxx.svg
+}'
 }
 
 ## If svg image exist in file, change [[./xxx/image.svg]] to [[./xxx/image.pdf]]
@@ -218,7 +311,7 @@ workaround_for_svg() {
     local out_file=$2
     local temp_file=$(mktemp /tmp/org2pdf.XXXXXX)
     cp "$in_file" "$temp_file"
-    for svg_file in $(get_images "${in_file}" "svg");
+    for svg_file in $(get_image_list "${in_file}" "svg");
     do
         local dir=$(dirname "${in_file}")
         local svg_path=${dir}/${svg_file}
@@ -251,7 +344,7 @@ workaround_for_gif() {
     local out_file=$2
     local temp_file=$(mktemp /tmp/org2pdf.XXXXXX)
     cp "$in_file" "$temp_file"
-    for gif_file in $(get_images "${in_file}" "gif");
+    for gif_file in $(get_image_list "${in_file}" "gif");
     do
         local dir=$(dirname "${in_file}")
         local gifpath=${dir}/${gif_file}
@@ -308,7 +401,6 @@ workaround_for_gif() {
             sed -i.bak "s@^\[\[${gif_file}\]\]@\\\\begin{figure}\[!htbp\]\\
 \\\\centering\\
   \\\\animategraphics\[controls ${widthStr}\]{${frameRate}}{${gif_file%.gif}_frames/frame-}{0}{${lastNum}}\\
-\\\\caption{\\\\label{${label}} ${caption}}\\
 \\\\end{figure}\\
 @" "$temp_file"
             # #+ATTR_LATEX: :width 500pt
@@ -316,13 +408,15 @@ workaround_for_gif() {
             # #+CAPTION: $ab=c$ test
             # [[./images/test.gif]
             # ---------->
+            # #+ATTR_LATEX: :width 500pt
+            # #+NAME: fig:test_3
+            # #+CAPTION: $ab=c$ test
             # \begin{figure}[!htbp]
             # \centering
             #   \animategraphics[controls, width=500pt]{2}{test_frames/}{1}{3}
-            # \caption{\label{fig:test_3} $ab=c$ test}
             # \end{figure}
             #
-            # NOTE: need \usepackage{animate}
+            # NOTE: Please set \usepackage{animate} in org-latex-default-class
         else
             # If the gif only contains one frame (not an animated gif).
 
