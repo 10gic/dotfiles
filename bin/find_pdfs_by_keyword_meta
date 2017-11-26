@@ -5,16 +5,16 @@ if [ ${#@} -ne 2 ]; then
     exit 1
 fi
 
-dir=$1
+dir="$1"
 keyword=$2
 
-if [ -d ${dir} ]; then
+if [ -d "${dir}" ]; then
     # Example of exiftool output (exiftool -Keywords ${dir}/*.pdf)
     # ======== file1.pdf
     # Keywords                        : test1
     # ======== file2.pdf
     # Keywords                        : test2
-    exiftool -Keywords ${dir}/*.pdf | egrep -i "^Keywords *:.*${keyword}.*" -B 1 | grep '^========' | cut -d ' ' -f 2-
+    exiftool -Keywords "${dir}"/*.pdf | egrep -i "^Keywords *:.*${keyword}.*" -B 1 | grep '^========' | cut -d ' ' -f 2-
 else
     if [ ! -a ${dir} ]; then
         echo "directory $dir is not existing" 1>&2
