@@ -11,4 +11,4 @@ fun=$1
 prog=$2
 args=$3
 
-PERL5LIB="$HOME/.perllib":$PERL5LIB perl -MDebug::LTrace="$fun" -- "$prog" $args
+PERL5LIB="$HOME/.perllib":$PERL5LIB perl -MDebug::LTrace="$fun" -- "$prog" "$args"

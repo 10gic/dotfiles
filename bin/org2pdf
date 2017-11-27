@@ -16,19 +16,19 @@ RESET='\033[00;00m'   # normal white
 
 log_err() {
     if [[ $log_level -ge 1 ]]; then
-        printf "[${RED}error${RESET}] $@\n" >&2
+        printf "[${RED}error${RESET}] %s\n" "$@" >&2
     fi
 }
 
 log_warn() {
     if [[ $log_level -ge 2 ]]; then
-        printf "[${YELLOW}warn${RESET}] $@\n" >&2
+        printf "[${YELLOW}warn${RESET}] %s\n" "$@" >&2
     fi
 }
 
 log_info() {
     if [[ $log_level -ge 3 ]]; then
-        printf "[info] $@\n" >&2
+        printf "[info] %s\n" "$@" >&2
     fi
 }
 
@@ -48,7 +48,7 @@ main() {
     fi
 
     local orgfile="$1"
-    if [ ! -e ${orgfile} ]; then
+    if [ ! -e "${orgfile}" ]; then
         log_err "File ${orgfile} does not exist, do nothing."
         exit 1;
     fi
@@ -66,13 +66,13 @@ main() {
     fi
 
     ## There are issues when export latex file with svg image.
-    if fgrep -q '.svg]]' "${orgfile}"; then
+    if grep -F -q '.svg]]' "${orgfile}"; then
         workaround_for_svg "${orgfile}" "${orgfile/%org/nosvg.org}"
         orgfile="${orgfile/%org/nosvg.org}"
     fi
 
     ## There are issues when export latex file with gif image.
-    if fgrep -q '.gif]]' "${orgfile}"; then
+    if grep -F -q '.gif]]' "${orgfile}"; then
         workaround_for_gif "${orgfile}" "${orgfile/%org/nogif.org}"
         orgfile="${orgfile/%org/nogif.org}"
     fi
@@ -88,9 +88,9 @@ main() {
         log_warn "File ${pdf} exsits before generating, it's removed."
         rm "${pdf}"
     fi
-    local neworgdir=${HOME}/.emacs.d/packages/extract/org-*/
     if [ -e ~/.emacs.d/customize-org.el ]; then
-        $EMACS -batch -L ${neworgdir}/lisp -L ${neworgdir}/contrib/lisp -l "~/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
+        local neworgdir="$(set -- ~/.emacs.d/packages/extract/org-*/; echo "$1")"  # select only one result from glob
+        $EMACS -batch -L "${neworgdir}/lisp" -L "${neworgdir}/contrib/lisp" -l "${HOME}/.emacs.d/customize-org.el" -f toggle-debug-on-error -eval \
                "(progn
                     (message (concat \"debug: org version=\" (org-version)))
                     (setq org-export-allow-bind-keywords t
@@ -297,7 +297,7 @@ BEGIN {
 get_image_list() {
     local file=$1
     local image_suffix=$2       # image_suffix example: svg, gif
-    sed -n '/^#+BEGIN_EXAMPLE$/, /^#+END_EXAMPLE$/ !p' "${file}" | awk -v fn=${file} -v pattern=${image_suffix} '
+    sed -n '/^#+BEGIN_EXAMPLE$/, /^#+END_EXAMPLE$/ !p' "${file}" | awk -v fn="${file}" -v pattern="${image_suffix}" '
 $0 ~ "^\\[\\[.*\\."pattern"\\]\\]$" {    # eg. [[xxxxxx.svg]]
     print substr($0, 3, length($0) - 4)  # remove first and last two characters, i.e. [[xxxxxx.svg]]  ---> xxxxxx.svg
 }'
@@ -316,7 +316,7 @@ workaround_for_svg() {
         local dir=$(dirname "${in_file}")
         local svg_path=${dir}/${svg_file}
         local pdf_file=${svg_path/%svg/pdf}
-        if [ ! -s ${pdf_file} ]; then
+        if [ ! -s "${pdf_file}" ]; then
             # convert svg to pdf if pdf does not exsit
             log_info "Convert svg file ${svg_path} to pdf."
             cd $(dirname "${svg_path}")     # inkscape may fail if we don't enter dir
@@ -348,21 +348,20 @@ workaround_for_gif() {
     do
         local dir=$(dirname "${in_file}")
         local gifpath=${dir}/${gif_file}
-        local gifbasenm=$(basename ${gifpath})
         if [[ ! -a $gifpath ]]; then
             log_warn "Gif file ${gifpath} does not exist, skip this gif."
             continue;
         fi
 
         local frameNum;
-        frameNum=$(exiftool -FrameCount ${gifpath});
+        frameNum=$(exiftool -FrameCount "${gifpath}");
         ## An example of exiftool output:
         ## Frame Count                     : 212
         if [[ $? -ne 0 ]]; then
             log_err "Get frame count of gif ${gifpath} failed, skip this gif."
             continue;
         fi
-        frameNum=$(echo $frameNum | awk -F': ' '{print $2}')  # only get number (for example 212)
+        frameNum=$(echo "$frameNum" | awk -F': ' '{print $2}')  # only get number (for example 212)
         if [[ "$frameNum" -gt 1 ]]; then
             # If the gif is an animated gif
 
@@ -371,16 +370,16 @@ workaround_for_gif() {
             # convert file.gif to multiple files: file_frames/frame-0.png, file_frames/frame-1.png, etc.
             local gif_expend_dir="${gifpath%.gif}_frames"
             mkdir -p "${gif_expend_dir}"
-            convert -coalesce ${gifpath} "${gif_expend_dir}/frame.png"
+            convert -coalesce "${gifpath}" "${gif_expend_dir}/frame.png"
             if [[ $? -ne 0 ]]; then
                 log_err "Convert gif ${gifpath} to multiple png failed, skip this gif."
                 continue;
             fi
-            local dura=$(exiftool -Duration ${gifpath} | awk -F': ' '{print $2}' | awk '{print $1}')
+            local dura=$(exiftool -Duration "${gifpath}" | awk -F': ' '{print $2}' | awk '{print $1}')
             # An example of `exiftool -Duration file.gif`:
             # Duration                        : 16.96 s
             local frameRate=$(echo "scale=2; ${frameNum}/${dura}" |bc) # specifies the number of frames per second of the animation
-            local lastNum=$((${frameNum}-1))           # first number is 0, so last number is frameNum -1
+            local lastNum=$((frameNum - 1))           # first number is 0, so last number is frameNum -1
             local label=$(grep -B 10 "\[\[${gif_file}\]\]" "${in_file}" | awk '{if ($1=="#+NAME:") print $2}' | tail -n 1)
             if [[ -z $label ]]; then
                 log_warn "Can't get label for image $gif_file"
@@ -422,10 +421,10 @@ workaround_for_gif() {
 
             # log_info "Gif file ${gifpath} contains only one frame, change gif to pdf."
             local pdf_file=${gifpath/%gif/pdf}
-            if [ ! -s ${pdf_file} ]; then
+            if [ ! -s "${pdf_file}" ]; then
                 log_info "Convert gif file ${gifpath} to pdf."
                 # convert gif to pdf if pdf does not exsit
-                sips -s format pdf ${gifpath} --out ${pdf_file}
+                sips -s format pdf "${gifpath}" --out "${pdf_file}"
                 if [[ ! -s ${pdf_file} ]]; then
                     log_err "Convert gif ${gifpath} to ${pdf_file} failed, skip this gif."
                     continue;

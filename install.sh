@@ -41,7 +41,7 @@ fi
 
 # update utils in ./bin/
 mkdir -p "${HOME}/bin"
-for util in $(ls ./bin/); do
-    chmod u+x "${PWD}/bin/${util}"
-    _make_link "${PWD}/bin/${util}" "${HOME}/bin/${util}"
+for util in bin/*; do
+    chmod u+x "${PWD}/${util}"
+    _make_link "${PWD}/${util}" "${HOME}/${util}"
 done

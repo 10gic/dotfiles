@@ -10,7 +10,7 @@ fi
 user="$1"
 if [ ! "$1" ]; then
     # Default, whoami and "id -un" is not available in Solaris.
-    user=`id | sed s"/) .*//" | sed "s/.*(//"`  # current user.
+    user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
 fi
 
 read -r -p "Are you sure to kill all System V IPC resources belong to ${user}? [y/N] " response
