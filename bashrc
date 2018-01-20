@@ -134,6 +134,11 @@ _ssh()
 }
 complete -F _ssh ssh
 
+# Other completion
+complete -f -o plusdirs -X '!*.zip' unzip_gbk # only complete zip for unzip_gdk
+complete -f -o plusdirs -X '!*.org' org2html  # only complete org for org2html
+complete -f -o plusdirs -X '!*.org' org2pdf   # only complete org for org2pdf
+
 ################################################################################
 # Configuration in Mac OS.
 if [[ "$(uname -s)" == "Darwin" ]]; then
