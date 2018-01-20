@@ -198,8 +198,9 @@ dos2unix_() {
 
 alias em='emacs -q -nw'
 
-# emacsclient of Aquamacs (A emacs variant in Mac OS X). Just hard-code it.
-emacsclient_mac=/Applications/Aquamacs.app/Contents/MacOS/bin/emacsclient
+if [ "$(uname -s)" = "Darwin" ]; then
+    alias ema='open -a Aquamacs'
+fi
 
 # start emacs daemon
 emacs_start() {
@@ -214,7 +215,7 @@ emacs_stop() {
 # kill all emacs process
 emacs_killall() {
     typeset user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
-    typeset pids=$(pgrep -u ${user} emacs);
+    typeset pids=$(pgrep -u ${user} emacs Emacs);
     if [ -n "$pids" ]; then
         echo kill -9 $pids
     else
@@ -224,7 +225,7 @@ emacs_killall() {
 
 # check emacs status
 emacs_status() {
-    typeset pids=$(pgrep emacs);
+    typeset pids=$(pgrep emacs Emacs);
     if [ -n "$pids" ]; then
         case "$(uname -s)" in
             CYGWIN*)
@@ -248,7 +249,7 @@ emacs_status() {
 # Check current shell is launched by emacs or not.
 # Return 0 if it's not launched by emacs
 # Return 1 if it's launched by emacs
-# Return 2 if it's launched by Aquamacs
+# Return 2 if it's launched by Aquamacs (A emacs variant in Mac OS X)
 launch_by_emacs() {
     typeset p_pid=$PPID
     typeset ppid_cmd
@@ -257,10 +258,14 @@ launch_by_emacs() {
         # ppid_cmd=`ps -p $p_pid -o cmd=` ## -o is not supported by ps in Cygwin
         ppid_cmd=$(ps -p $p_pid | tail -n 1)
         if [[ $ppid_cmd == *emacs* ]]; then
-             return 1;
+            return 1;
+        fi
+        if [[ $ppid_cmd == *Emacs* ]]; then
+            # In Mac, Emacs.app has name `Emacs`
+            return 1;
         fi
         if [[ $ppid_cmd == *Aquamacs* ]]; then
-             return 2;
+            return 2;
         fi
         #echo "p_pid is " $p_pid
         p_pid=$(get_ppid $p_pid)
@@ -313,7 +318,7 @@ emc() {
     launch_by_emacs
     typeset retcode=$?
     if [[ $retcode == 2 ]]; then
-        $emacsclient_mac -n "$@"
+        open -a Aquamacs "$@"
     elif [[ $retcode == 1 ]]; then
         emacsclient -n "$@"
     else
@@ -322,24 +327,30 @@ emc() {
 }
 
 emn() {
+    # Open file and jump to specified line
+    # For example, `emn file.txt:102` would open file.txt, and jump to line 102
     typeset str=$1
-    typeset -a array
-    array=(${str//:/ })
-    ## Note: typeset -a array=(${str//:/ }) cannot work in zsh
-    typeset filename=${array[0]}
-    typeset line=${array[1]}
-    typeset column=${array[2]}
-    #echo "filename:" $filename;
-    #echo "line:" $line;
-    #echo "column:" $column;
-    if [[ $line =~ ^[0-9]+$ ]]; then
-        if [[ $column =~ ^[0-9]+$ ]]; then
-            em +$line:$column "$filename"
-        else
-            em +$line "$filename"
-        fi
+    if [[ -z "$str" ]]; then
+        em
     else
-        em "$filename"
+        typeset -a array
+        array=(${str//:/ })
+        ## Note: typeset -a array=(${str//:/ }) cannot work in zsh
+        typeset filename=${array[0]}
+        typeset line=${array[1]}
+        typeset column=${array[2]}
+        #echo "filename:" $filename;
+        #echo "line:" $line;
+        #echo "column:" $column;
+        if [[ $line =~ ^[0-9]+$ ]]; then
+            if [[ $column =~ ^[0-9]+$ ]]; then
+                em +$line:$column "$filename"
+            else
+                em +$line "$filename"
+            fi
+        else
+            em "$filename"
+        fi
     fi
 }
 
