@@ -32,12 +32,19 @@ case "$(uname -s)" in
         alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
         ;;
     Darwin)
-        export LSCOLORS='Exfxcxdxbxegedabagacad'   # set for lighter blue directories in mac
-        alias ls='ls -G'
+        # The default color for directory is blue, but it's not distinguishable,
+        # Following setting disable color for directory.
+        export LSCOLORS='xxfxcxdxbxegedabagacad'
+        # In Emacs(Mac) term mode, `ls` can't show Chinese correctly,
+        # After adding 'LANG=en_US.UTF-8', Chinese can be shown.
+        alias ls='LANG=en_US.UTF-8 ls -GF'
         alias ll='ls -lhF'
-        alias grep='grep --color=auto'
-        alias fgrep='fgrep --color=auto'
-        alias egrep='egrep --color=auto'
+
+        # https://superuser.com/questions/117841/get-colors-in-less-or-more
+        alias grep='grep --color=always'
+        alias fgrep='fgrep --color=always'
+        alias egrep='egrep --color=always'
+        alias less='less -R'
         ;;
     AIX)
         alias ll='ls -lF'
