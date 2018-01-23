@@ -22,6 +22,7 @@ bashrc
 utils.sh
 perllib
 vimrc
+emacs
 "
 
 for file in $FILE_LIST; do
