@@ -33,8 +33,8 @@ case "$(uname -s)" in
         ;;
     Darwin)
         # The default color for directory is blue, but it's not distinguishable,
-        # Following setting disable color for directory.
-        export LSCOLORS='xxfxcxdxbxegedabagacad'
+        # Following setting change directory color to cyan.
+        export LSCOLORS='gxfxcxdxbxegedabagacad'
         # In Emacs(Mac) term mode, `ls` can't show Chinese correctly,
         # After adding 'LANG=en_US.UTF-8', Chinese can be shown.
         alias ls='LANG=en_US.UTF-8 ls -GF'
