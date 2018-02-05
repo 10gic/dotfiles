@@ -128,6 +128,10 @@ cl () {
     else
         typeset fullpath="$PWD/$1"
     fi
+    if command -v python >/dev/null 2>&1; then
+        # normalize path by using python
+        fullpath=$(python -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$fullpath")
+    fi
     case "$(uname -s)" in
         Linux|CYGWIN*)
             ## readlink -f option does not exist on Mac OS X
