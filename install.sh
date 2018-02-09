@@ -23,6 +23,7 @@ utils.sh
 perllib
 vimrc
 emacs
+ctags
 "
 
 for file in $FILE_LIST; do
