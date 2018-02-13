@@ -29,6 +29,7 @@ case "$(uname -s)" in
         alias grep='grep --color=auto'
         alias fgrep='fgrep --color=auto'
         alias egrep='egrep --color=auto'
+        alias zgrep='zgrep --color=auto'
         alias df='df -x tmpfs -x devtmpfs -x fuse.sshfs'
         ;;
     Darwin)
@@ -44,6 +45,7 @@ case "$(uname -s)" in
         alias grep='grep --color=always'
         alias fgrep='fgrep --color=always'
         alias egrep='egrep --color=always'
+        alias zgrep='zgrep --color=always'
         alias less='less -R'
         ;;
     AIX)
