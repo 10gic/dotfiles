@@ -205,7 +205,14 @@ dos2unix_() {
 alias em='emacs -q -nw'
 
 if [ "$(uname -s)" = "Darwin" ]; then
-    alias ema='open -a Aquamacs'
+    # Open file with Aquamacs
+    ema() {
+        for f in "$@";
+        do
+            test -e "$f" || touch "$f"
+        done
+        open -a Aquamacs "$@"
+    }
 fi
 
 # start emacs daemon
