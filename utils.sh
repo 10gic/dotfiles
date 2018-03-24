@@ -13,6 +13,10 @@ if [ -d "${HOME}/bin" ]; then
     export PATH="${HOME}/bin:${PATH}"
 fi
 
+if [ -d "${HOME}/go/bin" ]; then
+    export PATH="${HOME}/go/bin:${PATH}"
+fi
+
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
@@ -228,7 +232,7 @@ emacs_stop() {
 # kill all emacs process
 emacs_killall() {
     typeset user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
-    typeset pids=$(pgrep -u ${user} emacs Emacs);
+    typeset pids=$(pgrep -u ${user} emacs Emacs Aquamacs);
     if [ -n "$pids" ]; then
         echo kill -9 $pids
     else
@@ -238,7 +242,7 @@ emacs_killall() {
 
 # check emacs status
 emacs_status() {
-    typeset pids=$(pgrep emacs Emacs);
+    typeset pids=$(pgrep emacs Emacs Aquamacs);
     if [ -n "$pids" ]; then
         case "$(uname -s)" in
             CYGWIN*)
