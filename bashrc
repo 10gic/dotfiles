@@ -9,12 +9,16 @@ esac
 
 # don't put duplicate lines in the history. See bash(1) for more options
 # don't overwrite GNU Midnight Commander's setting of `ignorespace'.
-HISTCONTROL=$HISTCONTROL${HISTCONTROL+:}ignoredups
+HISTCONTROL=$HISTCONTROL${HISTCONTROL+:}ignoredups:erasedups
 # ... or force ignoredups and ignorespace
 HISTCONTROL=ignoreboth
 
 # append to the history file, don't overwrite it
 shopt -s histappend
+
+# After each command, append to the history file and reread it
+# See https://unix.stackexchange.com/questions/1288/preserve-bash-history-in-multiple-terminal-windows
+export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}history -a; history -c; history -r"
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
