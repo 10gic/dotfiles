@@ -77,7 +77,7 @@ alias ulimit='ulimit -S'
 # Compute sum of stdin line by line
 ## If there are too many lines, tool bc would fail.
 ## This is an alternative: awk ' { totol += $0 } END { print totol }'
-alias mysum='paste -sd+ - |bc'
+alias my_sum='paste -sd+ - |bc'
 
 # Check if trash-put exists in $PATH
 if command -v trash-put >/dev/null 2>&1; then
@@ -181,9 +181,9 @@ dos2unix_() {
 }
 
 # convert decimal to hex, support big number
-10to16() {
+my_10to16() {
     if [ ${#@} -ne 1 ]; then
-        echo 'Usage: 10to16 number'
+        echo 'Usage: my_10to16 number'
         return
     fi
     typeset num="$1"
@@ -193,13 +193,30 @@ dos2unix_() {
 }
 
 # convert hex to decimal, support big number
-16to10() {
+my_16to10() {
     if [ ${#@} -ne 1 ]; then
-        echo 'Usage: 16to10 number'
+        echo 'Usage: my_16to10 number'
         return
     fi
     typeset num="$1"
     python -c "print(int(\"${num}\", 16))"
+}
+
+my_getpidenv() {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: my_getpidenv pid'
+        return
+    fi
+    local pid=$1
+    if [ "$(uname -s)" = "Linux" ]; then
+        tr "\0" "\n" < "/proc/$pid/environ"
+    elif [ "$(uname -s)" = "Darwin" ]; then
+        # option e in ps show env
+        # use `command` to bypass grep alias
+        ps ewww $pid | command grep -o '[^ ]*=[^ ]*'
+    else
+        echo 'get_pidenv do not support your system'
+    fi
 }
 
 ################################################################################
