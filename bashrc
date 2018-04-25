@@ -18,7 +18,7 @@ shopt -s histappend
 
 # After each command, append to the history file and reread it
 # See https://unix.stackexchange.com/questions/1288/preserve-bash-history-in-multiple-terminal-windows
-export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}history -a; history -c; history -r"
+export PROMPT_COMMAND="history -a; history -c; history -r"
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -165,3 +165,7 @@ fi
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
+
+## Local Variables: ##
+## mode:sh ##
+## End: ##

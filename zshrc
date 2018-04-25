@@ -84,3 +84,7 @@ setopt SH_WORD_SPLIT
 if [ -f ~/.utils.sh ]; then
     source ~/.utils.sh
 fi
+
+## Local Variables: ##
+## mode:sh ##
+## End: ##
