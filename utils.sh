@@ -202,6 +202,26 @@ my_16to10() {
     python -c "print(int(\"${num}\", 16))"
 }
 
+# convert binary to hex
+my_2to16() {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: my_2to16 number'
+        return
+    fi
+    typeset num="$1"
+    python -c "print(hex(int(\"${num}\", 2)))"
+}
+
+# convert hex to binary
+my_16to2() {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: my_16to2 number'
+        return
+    fi
+    typeset num="$1"
+    python -c "print(bin(int(\"${num}\", 16)))"
+}
+
 my_getpidenv() {
     if [ ${#@} -ne 1 ]; then
         echo 'Usage: my_getpidenv pid'
@@ -215,7 +235,7 @@ my_getpidenv() {
         # use `command` to bypass grep alias
         ps ewww $pid | command grep -o '[^ ]*=[^ ]*'
     else
-        echo 'get_pidenv do not support your system'
+        echo 'my_getpidenv do not support your system'
     fi
 }
 
