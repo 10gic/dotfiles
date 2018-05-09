@@ -46,10 +46,10 @@ case "$(uname -s)" in
         alias ll='ls -lhF'
 
         # https://superuser.com/questions/117841/get-colors-in-less-or-more
-        alias grep='grep --color=always'
-        alias fgrep='fgrep --color=always'
-        alias egrep='egrep --color=always'
-        alias zgrep='zgrep --color=always'
+        alias grepc='grep --color=always'
+        alias fgrepc='fgrep --color=always'
+        alias egrepc='egrep --color=always'
+        alias zgrepc='zgrep --color=always'
         alias less='less -R'
         ;;
     AIX)
@@ -498,13 +498,21 @@ alias gdb='gdb -q'
 ################################################################################
 ## helper functions for cscope
 
-getdef() {
-    # get C/C++ function definitions in current directory
+my_getfuncdef() {
+    # get function definitions in current directory
+    if [ ! "$1" ] ; then
+        echo "Usage: my_getfuncdef [func_name]"
+        return
+    fi
     cscope_query 1 $1
 }
 
-getref() {
-    # get C/C++ function references in current directory
+my_getfuncref() {
+    # get function references in current directory
+    if [ ! "$1" ] ; then
+        echo "Usage: my_getfuncref [func_name]"
+        return
+    fi
     cscope_query 3 $1
 }
 
@@ -515,14 +523,14 @@ cscope_query() {
         echo "cscope is not found."
         return
     fi
-    if [ ! -a $PWD/cscope.output ]; then
-        typeset index_file=$(mktemp /tmp/cscope.XXXXXX)
-        typeset list_file=$(mktemp /tmp/cscope2.XXXXXX)
+    if [ ! -a "$PWD/cscope.output" ]; then
+        typeset index_file=$(mktemp /tmp/cscopeindex.XXXXXX)
+        typeset list_file=$(mktemp /tmp/cscopelist.XXXXXX)
         if command -v cscope-indexer >/dev/null 2>&1; then
             cscope-indexer -f $index_file -i $list_file -r
         else
             # generate index file manually if cscope-indexer is not available.
-            cscope_generate_list $list_file
+            my_gencscopefiles $list_file
             cscope -b -i $list_file -f $index_file
         fi
         cscope -d -f $index_file -L -$1 $2
@@ -533,13 +541,13 @@ cscope_query() {
     fi
 }
 
-cscope_generate_list () {
+my_gencscopefiles () {
     typeset list_file=cscope.files
     if [ $# -ge 1 ]; then
         list_file=$1
     fi
     ( find "$PWD" \( -type f -o -type l \) ) | \
-        egrep -i '\.([chly](xx|pp)*|cc|hh)$' | \
+        egrep -i '\.([chly](xx|pp)*|cc|hh|go|java)$' | \
         sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
         sort > $list_file
 }
@@ -547,37 +555,54 @@ cscope_generate_list () {
 ################################################################################
 ## helper functions for VirtualBox
 
-# usage: startvm [your_vmname]
+# lists all virtual machines currently registered with VirtualBox
+my_vmlist() {
+    VBoxManage list vms
+}
+
+my_vmlistrunning() {
+    VBoxManage list runningvms
+}
+
+# usage: my_vmstart [vmname]
 # start virtual machine in headless mode, and show ip of guest OS.
-startvm () {
+my_vmstart () {
     typeset vmname="$1"
     if [ ! "$1" ] ; then
-        vmname="Debian8"   # My default virtual machine name.
+        echo "Usage: my_vmstart [vmname]"
+        echo ""
+        echo "Candidate of vmname:"
+        VBoxManage list vms | cut -d' ' -f1
+        return
     fi
     # start vm in headless mode
     VBoxManage startvm $vmname --type headless
 
-    checkvmip $vmname;
-    echo "You can run 'checkvmip ${vmname}' to check the ip of vm."
+    # my_vmcheckip $vmname;
+    echo "You can run 'my_vmcheckip ${vmname}' to check the ip of vm."
 }
 
-# usage: stopvm [your_vmname]
+# usage: my_vmstop [vmname]
 # stop virtual machine
-stopvm () {
+my_vmstop () {
     typeset vmname="$1"
     if [ ! "$1" ] ; then
-        vmname="Debian8"   # My default virtual machine name.
+        echo "Usage: my_vmstart [running_vmname]"
+        echo ""
+        echo "Candidate of running_vmname:"
+        VBoxManage list runningvms | cut -d' ' -f1
+        return
     fi
     # shutdown virtual machine
     VBoxManage controlvm $vmname poweroff
 }
 
-# usage: checkvmip [your_vmname]
-# checkvmip virtual machine
-checkvmip () {
+# usage: my_vmcheckip [your_vmname]
+my_vmcheckip () {
     typeset vmname="$1"
     if [ ! "$1" ] ; then
-        vmname="Debian8"   # My default virtual machine name.
+        echo "Usage: my_vmcheckip [vmname]"
+        return
     fi
     # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
     typeset ip=$(VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}')
