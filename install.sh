@@ -36,6 +36,11 @@ if command -v zsh >/dev/null 2>&1; then
     _make_link "${PWD}/zshrc" "${HOME}/.zshrc"
 fi
 
+# make link for kshrc only ksh is avaiable
+if command -v ksh >/dev/null 2>&1; then
+    _make_link "${PWD}/kshrc" "${HOME}/.kshrc"
+fi
+
 # make link for gdbinit only gdb is avaiable
 if command -v gdb >/dev/null 2>&1; then
     _make_link "${PWD}/gdbinit" "${HOME}/.gdbinit"
