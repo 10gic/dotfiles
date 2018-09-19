@@ -254,6 +254,14 @@ if [ "$(uname -s)" = "Darwin" ]; then
         done
         open -a Aquamacs "$@"
     }
+    emx() {
+        Emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
+        for f in "$@";
+        do
+            test -e "$f" || touch "$f"
+        done
+        open -a $Emacs "$@"
+    }
 fi
 
 # start emacs daemon
