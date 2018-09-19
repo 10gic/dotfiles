@@ -8,15 +8,20 @@ import zipfile
 ## unzip file with encoding GBK.
 
 if len(sys.argv) != 2:
-    print "Usage: unzip_gbk filename.zip"
+    print("Usage: unzip_gbk filename.zip")
     sys.exit(1)
-
-print u"Processing File %s" % sys.argv[1].decode('utf-8')
 
 file = zipfile.ZipFile(sys.argv[1], "r")
 for gbkname in file.namelist():
-    utf8name = gbkname.decode('gbk')
-    print "Extracting %s" % utf8name
+    if sys.version_info[0] < 3:
+        utf8name = gbkname.decode('gbk')
+    else:
+        # In Python 3.x, the module will decode the file with encoding cp437 and
+        # return decoded result. Of course, the module will not know the true
+        # encoding of the filename in both Python versions.
+        # See https://stackoverflow.com/questions/41019624/python-zipfile-module-cant-extract-filenames-with-chinese-characters
+        utf8name = gbkname.encode('cp437').decode('gbk')
+    print("Extracting %s" % utf8name)
     pathname = os.path.dirname(utf8name)
     if not os.path.exists(pathname) and pathname != "":
         os.makedirs(pathname)
