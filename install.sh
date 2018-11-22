@@ -31,9 +31,11 @@ for file in $FILE_LIST; do
     _make_link "${PWD}/${file}" "${HOME}/.${file}"
 done
 
-# Use ~/.bash_profile (rather than ~/.bashrc) in Mac OS
-# See https://superuser.com/questions/244964/mac-os-x-bashrc-not-working
-_make_link "${PWD}/bashrc" "${HOME}/.bash_profile"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    # Use ~/.bash_profile (rather than ~/.bashrc) in Mac OS
+    # See https://superuser.com/questions/244964/mac-os-x-bashrc-not-working
+    _make_link "${PWD}/bashrc" "${HOME}/.bash_profile"
+fi
 
 # make link for zshrc only zsh is avaiable
 if command -v zsh >/dev/null 2>&1; then
