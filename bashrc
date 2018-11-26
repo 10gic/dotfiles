@@ -40,11 +40,16 @@ _PS1 ()
 }
 PS1='\u@\h $(_PS1 "$PWD" 45)\$ '
 
-# set titile, make it update dynamically
+# set title, make it update dynamically
 # see also http://www.faqs.org/docs/Linux-mini/Xterm-Title.html#ss4.3
 case "$TERM" in
     xterm*|rxvt*|cygwin)
-        PS1="\[\033]0;\u@\h: \w\007\]$PS1"
+        if [[ -n ${title_host} ]]; then
+            # You can customize hostname in title by setting title_host
+            PS1="\[\033]0;\u@${title_host}: \w\007\]$PS1"
+        else
+            PS1="\[\033]0;\u@\h: \w\007\]$PS1"
+        fi
         ;;
     *)
         ;;
