@@ -76,7 +76,7 @@ alias ulimit='ulimit -S'
 
 # Compute sum of stdin line by line
 ## If there are too many lines, tool bc would fail.
-## This is an alternative: awk ' { totol += $0 } END { print totol }'
+## All numbers are represented internally in decimal and all computation is done in decimal.
 alias my_sum='paste -sd+ - |bc'
 
 # Check if trash-put exists in $PATH
