@@ -79,6 +79,9 @@ alias ulimit='ulimit -S'
 ## All numbers are represented internally in decimal and all computation is done in decimal.
 alias my_sum='paste -sd+ - |bc'
 
+# Cat file, and remove comments
+alias cat_no_comment='egrep -v "^\s*(#|$)"'
+
 # Check if trash-put exists in $PATH
 if command -v trash-put >/dev/null 2>&1; then
     alias rm='trash-put'
@@ -237,6 +240,18 @@ my_getpidenv() {
     else
         echo 'my_getpidenv do not support your system'
     fi
+}
+
+proxy_on() {
+    export http_proxy='http://localhost:1087'
+    export https_proxy='http://localhost:1087'
+    echo "proxy on"
+}
+
+proxy_off() {
+    unset http_proxy
+    unset https_proxy
+    echo "proxy off"
 }
 
 ################################################################################
