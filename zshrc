@@ -3,6 +3,8 @@
 autoload -Uz promptinit
 promptinit
 prompt adam2
+# See https://stackoverflow.com/questions/47061766/zsh-prompt-adam2-script-output-without-newline-is-not-being-displayed
+setopt prompt_sp
 
 setopt histignorealldups sharehistory
 
