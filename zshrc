@@ -87,6 +87,10 @@ if [ -f ~/.utils.sh ]; then
     source ~/.utils.sh
 fi
 
+if [ -f ~/.profile ]; then
+    source ~/.profile
+fi
+
 ## Local Variables: ##
 ## mode:sh ##
 ## End: ##

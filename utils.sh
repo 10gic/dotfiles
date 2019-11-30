@@ -576,6 +576,25 @@ my_gencscopefiles () {
 }
 
 ################################################################################
+# Upload file to server
+upload() {
+    if [[ ${#@} -ne 1 ]]; then
+        echo 'Usage: upload file_path'
+        return
+    fi
+    typeset file_path=$1
+    if [[ ! -f $file_path ]]; then
+        echo "file $file_path not exist"
+        return
+    fi
+    if [[ -z ${UPLOAD_SVR_URL} ]]; then
+        echo "env UPLOAD_SVR_URL is empty, do nothing"
+        return
+    fi
+    curl -F "file=@${file_path}" ${UPLOAD_SVR_URL}
+}
+
+################################################################################
 ## helper functions for VirtualBox
 
 # lists all virtual machines currently registered with VirtualBox
