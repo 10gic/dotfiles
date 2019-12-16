@@ -17,6 +17,9 @@ if [ -d "${HOME}/go/bin" ]; then
     export PATH="${HOME}/go/bin:${PATH}"
 fi
 
+# brew may put executables in /usr/local/sbin
+export PATH="/usr/local/sbin:$PATH"
+
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
