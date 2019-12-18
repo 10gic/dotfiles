@@ -101,6 +101,9 @@ export HISTCONTROL=ignoredups
 # Environment variable for wine.
 export WINEARCH=win32
 
+# 如果没有下面配置，在 zsh 中进入中文目录后，PS1 中的目录名可能乱码
+export LANG=en_US.UTF-8
+
 # Environment variable for X server
 # export DISPLAY=:0.0
 
@@ -182,6 +185,26 @@ dos2unix_() {
             cp -a -f "$TMP" "$1"
         fi
         rm -f "$TMP"
+        shift
+    done
+}
+
+# convert file from GB18030 to UTF-8
+my_gb18030_to_utf8() {
+    if [ ! "$1" ]; then
+        echo 'Usage: my_gb18030_to_utf8 file'
+        return
+    fi
+
+    typeset target_file
+    while [ "$1" ] ; do
+        target_file=$1.bak$RANDOM
+        iconv -f GB18030 -t UTF-8 $1 >$target_file
+        if [ $? -eq 0 ]; then
+            mv $target_file $1
+        else
+            rm -f $target_file
+        fi
         shift
     done
 }
