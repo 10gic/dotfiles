@@ -2,7 +2,10 @@
 
 autoload -Uz promptinit
 promptinit
-prompt adam2
+
+# prompt adam2  # 暂时不使用主题 adam2，当目录名有中文字符时 PS1 显示会超时一行
+prompt suse
+
 # See https://stackoverflow.com/questions/47061766/zsh-prompt-adam2-script-output-without-newline-is-not-being-displayed
 setopt prompt_sp
 
