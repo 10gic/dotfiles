@@ -180,7 +180,7 @@ dos2unix_() {
 
     typeset TMP
     while [ "$1" ] ; do
-        TMP=$1.$$
+        TMP="$1.$$"
         if tr -d '\r' <"$1" >"$TMP" ; then
             cp -a -f "$TMP" "$1"
         fi
@@ -198,12 +198,12 @@ my_gb18030_to_utf8() {
 
     typeset target_file
     while [ "$1" ] ; do
-        target_file=$1.bak$RANDOM
-        iconv -f GB18030 -t UTF-8 $1 >$target_file
+        target_file="$1.bak$RANDOM"
+        iconv -f GB18030 -t UTF-8 "$1" >"$target_file"
         if [ $? -eq 0 ]; then
-            mv $target_file $1
+            mv "$target_file" "$1"
         else
-            rm -f $target_file
+            rm -f "$target_file"
         fi
         shift
     done
