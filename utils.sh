@@ -617,7 +617,11 @@ upload() {
         echo "env UPLOAD_SVR_URL is empty, do nothing"
         return
     fi
-    curl -F "file=@${file_path}" ${UPLOAD_SVR_URL}
+    typeset output=$(mktemp /tmp/curl.XXXXXX)
+    # Note: curl progress info only displayed when you redirect the output to a file
+    curl -F "file=@${file_path}" ${UPLOAD_SVR_URL} > $output
+    cat $output
+    rm -f $output
 }
 
 ################################################################################
