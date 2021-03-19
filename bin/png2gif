@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "Only support in Mac OS"
+    exit
+fi
+
+if [ ! "$1" ] ; then
+    echo 'Usage: png2gif file1 file2 ...'
+    exit
+fi
+
+typeset input_file
+while [ "$1" ] ; do
+    input_file="$1"
+    output_file="${input_file%.png}.gif"
+    sips --setProperty format gif "$input_file" --out "$output_file"
+    shift
+done

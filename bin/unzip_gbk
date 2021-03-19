@@ -27,7 +27,7 @@ for gbkname in file.namelist():
         os.makedirs(pathname)
     if not os.path.exists(utf8name):
         data = file.read(gbkname)
-        outfile = open(utf8name, "w")
+        outfile = open(utf8name, "wb")
         outfile.write(data)
         outfile.close()
 file.close()

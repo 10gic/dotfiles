@@ -82,6 +82,15 @@ zle -N copy-earlier-word
 bindkey "^[m" copy-earlier-word
 
 
+# Fix key bindings in JetBrains Terminal
+# https://youtrack.jetbrains.com/issue/IDEA-165184?_ga=2.159895741.1670410349.1612927336-1335034009.1603640842#focus=streamItem-27-3276325.0-0
+if [[ "$TERMINAL_EMULATOR" == "JetBrains-JediTerm" ]]; then
+  bindkey "∫" backward-word    # Option-b
+  bindkey "ƒ" forward-word     # Option-f
+  bindkey "∂" delete-word      # Option-d
+  bindkey "≥" insert-last-word # Option-.
+fi
+
 ################################################################################
 # source common utils/settings
 setopt KSH_ARRAYS

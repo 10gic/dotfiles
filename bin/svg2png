@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ ! "$1" ] ; then
+    echo 'Usage: svg2png file1 file2 ...'
+    exit
+fi
+
+typeset input_file
+while [ "$1" ] ; do
+    input_file="$1"
+    output_file="${input_file%.svg}.png"
+    inkscape --export-type=png --export-filename="$output_file" "$input_file" # inkscape 1.0+
+    shift
+done

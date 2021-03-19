@@ -63,12 +63,8 @@ case "$(uname -s)" in
         ;;
 esac
 
+# Only show files starts with dot
 alias l.='ls -d .*'
-
-alias cd..="cd .."
-alias cd...="cd ../.."
-alias cd....="cd ../../.."
-alias cd.....="cd ../../../.."
 
 # Don't delete the input files when using unxz
 alias unxz='unxz -k'
@@ -101,7 +97,7 @@ export HISTCONTROL=ignoredups
 # Environment variable for wine.
 export WINEARCH=win32
 
-# 如果没有下面配置，在 zsh 中进入中文目录后，PS1 中的目录名可能乱码
+# zsh need this, otherwise Chinese in PS1 can not shown correctly
 export LANG=en_US.UTF-8
 
 # Environment variable for X server
@@ -152,8 +148,7 @@ cl () {
             ## readlink -f option does not exist on Mac OS X
             typeset normalpath="$(readlink -nf "$fullpath")";
             ## test xsel
-            xsel >/dev/null 2>&1
-            if [ $? -eq 0 ]; then
+            if xsel >/dev/null 2>&1; then
                 # if xsel work normally, copy path to clipboard.
                 echo -n "$normalpath" | xsel -ib
                 echo "$normalpath is copied to clipboard"
@@ -199,8 +194,7 @@ my_gb18030_to_utf8() {
     typeset target_file
     while [ "$1" ] ; do
         target_file="$1.bak$RANDOM"
-        iconv -f GB18030 -t UTF-8 "$1" >"$target_file"
-        if [ $? -eq 0 ]; then
+        if iconv -f GB18030 -t UTF-8 "$1" >"$target_file"; then
             mv "$target_file" "$1"
         else
             rm -f "$target_file"
@@ -268,16 +262,47 @@ my_getpidenv() {
     fi
 }
 
+# Just like du, but sorted by human-readable size
+my_du() {
+    perl -e'%h=map{/.\s/;99**(ord$&&7)-$`,$_}`du -d 1 -h`;die@h{reverse sort%h}'
+}
+
 proxy_on() {
     export http_proxy='http://localhost:1087'
     export https_proxy='http://localhost:1087'
+    export JAVA_OPTS="$JAVA_OPTS -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=1087"
+    export JAVA_OPTS="$JAVA_OPTS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=1087"
+    ## Default, sbt use gigahorse as HTTP client, but gigahorse do not support proxy, so disable gigahorse
+    ## https://github.com/sbt/sbt/issues/3696
+    export JAVA_OPTS="$JAVA_OPTS -Dsbt.gigahorse=false"
+    if command -v npm >/dev/null 2>&1; then
+        npm config set proxy http://localhost:1087
+        npm config set https-proxy http://localhost:1087
+    fi
     echo "proxy on"
 }
 
 proxy_off() {
     unset http_proxy
     unset https_proxy
+    if command -v npm >/dev/null 2>&1; then
+        npm config delete proxy
+        npm config delete https-proxy
+    fi
+    export JAVA_OPTS=$(echo $JAVA_OPTS | sed -e 's/-Dhttp.proxy[^ ]* //g' -e 's/-Dhttps.proxy[^ ]* //g')
     echo "proxy off"
+}
+
+proxy_status() {
+    echo "http_proxy=$http_proxy"
+    echo "https_proxy=$https_proxy"
+    if command -v npm >/dev/null 2>&1; then
+        echo -n "npm config get proxy="
+        npm config get proxy
+        echo -n "npm config get https-proxy="
+        npm config get https-proxy
+    fi
+    echo "JAVA_OPTS=$JAVA_OPTS"
 }
 
 ################################################################################
@@ -287,14 +312,6 @@ proxy_off() {
 alias em='emacs -q -nw'
 
 if [ "$(uname -s)" = "Darwin" ]; then
-    # Open file with Aquamacs
-    ema() {
-        for f in "$@";
-        do
-            test -e "$f" || touch "$f"
-        done
-        open -a Aquamacs "$@"
-    }
     emx() {
         Emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
         for f in "$@";
@@ -490,6 +507,10 @@ ediff() {
     fi
 }
 
+my_gen_pw() {
+    openssl rand -base64 20
+}
+
 ################################################################################
 ################################################################################
 ## helper functions for gdb
@@ -547,8 +568,8 @@ alias gdb='gdb -q'
 ################################################################################
 ## helper functions for cscope
 
+# get function definitions in current directory
 my_getfuncdef() {
-    # get function definitions in current directory
     if [ ! "$1" ] ; then
         echo "Usage: my_getfuncdef [func_name]"
         return
@@ -556,8 +577,8 @@ my_getfuncdef() {
     cscope_query 1 $1
 }
 
+# get function references in current directory
 my_getfuncref() {
-    # get function references in current directory
     if [ ! "$1" ] ; then
         echo "Usage: my_getfuncref [func_name]"
         return
@@ -606,6 +627,7 @@ my_gencscopefiles () {
 upload() {
     if [[ ${#@} -ne 1 ]]; then
         echo 'Usage: upload file_path'
+        echo "curl -F \"file=@file\" ${UPLOAD_SVR_URL:-UPLOAD_SVR_URL} >out.log"
         return
     fi
     typeset file_path=$1

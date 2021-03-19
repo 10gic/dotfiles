@@ -1,0 +1,59 @@
+#!/bin/bash
+
+echoerr() { printf "%s\n" "$*" >&2; }
+
+if [ ! "$1" ] ; then
+    echoerr 'Usage: svg2pdf file1 file2 ...'
+    exit
+fi
+
+chrome_full_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+typeset input_file
+while [ "$1" ] ; do
+    input_file="$1"
+    output_file="${input_file%.svg}.pdf"
+    if [[ -s ${output_file} ]]; then
+        echoerr "file $output_file exsits, do nothing"
+        shift
+        continue
+    fi
+
+    # 先尝试用 chrome 转换 svg 为 pdf
+    # 如果没有找到 chrome ，则尝试使用 inkscape 转换 svg 为 pdf
+    # 注：chrome 的效果比 inkscape 好，有一些 svg 文件，inkscape 转换 pdf 后会失真
+    if [[ -x "${chrome_full_path}" ]]; then
+        # 如果可以找到 chrome，则调用 chrome 转换 svg 为 pdf
+        # 但是 chrome 默认会把日期和页码等信息也保存到 pdf 中
+        # 下面通过设置 svg 中 css 来控制生成 pdf 和 css 一样大小
+        # 比如在 svg 中增加下面这行：
+        # '<?xml-stylesheet type="text/css" href="1.css"?>'
+        # 而 1.css 内容如下：
+        # @page {
+        #  margin: 0;
+        #  padding: 0;
+        #  size: 100px 200px;
+        # }
+        width=$(egrep -o 'width="[0-9]+px"' "$input_file" |head -1|egrep -o "[0-9]+px")
+        height=$(egrep -o 'height="[0-9]+px"' "$input_file" |head -1|egrep -o "[0-9]+px")
+        if [[ -z $width ]]; then
+            echoerr "no width found in file $input_file"
+        fi
+        if [[ -z $height ]]; then
+            echoerr "no height found in file $input_file"
+        fi
+        svg_css="@page { margin: 0; padding: 0; size: $width $height; }"
+        tmp_svg_css=$(mktemp -u).css
+        tmp_svg_file=$(mktemp -u).svg
+        echo "$svg_css" > "$tmp_svg_css"
+        add_line='<?xml-stylesheet type="text/css" href="'${tmp_svg_css}'"?>'
+        sed -e "1a \\
+${add_line}" "$input_file" > $tmp_svg_file
+        "${chrome_full_path}" --headless --disable-gpu --print-to-pdf="$output_file" "$tmp_svg_file"
+        rm $tmp_svg_css
+        rm $tmp_svg_file
+    else
+        inkscape --export-type=pdf --export-filename="$output_file" "$input_file" # require inkscape 1.0+
+    fi
+    shift
+done

@@ -144,9 +144,14 @@ _ssh()
 complete -F _ssh ssh
 
 # Other completion
-complete -f -o plusdirs -X '!*.zip' unzip_gbk # only complete zip for unzip_gdk
-complete -f -o plusdirs -X '!*.org' org2html  # only complete org for org2html
-complete -f -o plusdirs -X '!*.org' org2pdf   # only complete org for org2pdf
+complete -f -o plusdirs -X '!*.zip' unzip_gbk # only complete zip files and dirs
+complete -f -o plusdirs -X '!*.org' org2html  # only complete org files and dirs
+complete -f -o plusdirs -X '!*.org' org2pdf   # only complete org files and dirs
+complete -f -o plusdirs -X '!*.jpg' jpg2gif   # only complete jpg files and dirs
+complete -f -o plusdirs -X '!*.png' png2gif   # only complete png files and dirs
+complete -f -o plusdirs -X '!*.svg' svg2pdf   # only complete svg files and dirs
+complete -f -o plusdirs -X '!*.svg' svg2png   # only complete svg files and dirs
+complete -f -o plusdirs -X '!*.puml' puml2svg # only complete puml files and dirs
 
 ################################################################################
 # Configuration in Mac OS.
