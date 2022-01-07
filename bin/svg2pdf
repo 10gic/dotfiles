@@ -19,21 +19,17 @@ while [ "$1" ] ; do
         continue
     fi
 
-    # 先尝试用 chrome 转换 svg 为 pdf
-    # 如果没有找到 chrome ，则尝试使用 inkscape 转换 svg 为 pdf
-    # 注：chrome 的效果比 inkscape 好，有一些 svg 文件，inkscape 转换 pdf 后会失真
+    # Convert svg to pdf, the conversion result of chrome is better than inkscape
+    # Try Chrome firstly, if chrome is not found, try to use inkscape
     if [[ -x "${chrome_full_path}" ]]; then
-        # 如果可以找到 chrome，则调用 chrome 转换 svg 为 pdf
-        # 但是 chrome 默认会把日期和页码等信息也保存到 pdf 中
-        # 下面通过设置 svg 中 css 来控制生成 pdf 和 css 一样大小
-        # 比如在 svg 中增加下面这行：
+	# By default, chrome will also save information such as date and page
+	# number to pdf. We find a way to set the size of the pdf. Control the
+	# size of the generated pdf by setting the css in the svg.
+	#
+	# For example, add the following line in svg
         # '<?xml-stylesheet type="text/css" href="1.css"?>'
-        # 而 1.css 内容如下：
-        # @page {
-        #  margin: 0;
-        #  padding: 0;
-        #  size: 100px 200px;
-        # }
+        # Contents of file 1.css:
+        # @page { margin: 0; padding: 0; size: 100px 200px; }
         width=$(egrep -o 'width="[0-9]+px"' "$input_file" |head -1|egrep -o "[0-9]+px")
         height=$(egrep -o 'height="[0-9]+px"' "$input_file" |head -1|egrep -o "[0-9]+px")
         if [[ -z $width ]]; then
@@ -53,7 +49,8 @@ ${add_line}" "$input_file" > $tmp_svg_file
         rm $tmp_svg_css
         rm $tmp_svg_file
     else
-        inkscape --export-type=pdf --export-filename="$output_file" "$input_file" # require inkscape 1.0+
+	# require inkscape 1.0+
+        inkscape --export-type=pdf --export-filename="$output_file" "$input_file"
     fi
     shift
 done
