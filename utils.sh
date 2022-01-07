@@ -78,6 +78,9 @@ alias ulimit='ulimit -S'
 ## All numbers are represented internally in decimal and all computation is done in decimal.
 alias my_sum='paste -sd+ - |bc'
 
+# Just like du, but sorted by human-readable size
+alias my_du='du -d 1 -h |sort -h'
+
 # Cat file, and remove comments
 alias cat_no_comment='egrep -v "^\s*(#|$)"'
 
@@ -166,6 +169,11 @@ cl () {
     esac
 }
 
+# Generate a random password
+my_gen_pw() {
+    openssl rand -base64 20
+}
+
 # You don't need it if dos2unix is available.
 dos2unix_() {
     if [ ! "$1" ] ; then
@@ -245,39 +253,48 @@ my_16to2() {
     python -c "print(bin(int(\"${num}\", 16)))"
 }
 
-my_getpidenv() {
-    if [ ${#@} -ne 1 ]; then
-        echo 'Usage: my_getpidenv pid'
+# https://www.codeproject.com/Tips/470308/XOR-Hex-Strings-in-Linux-Shell-Script
+my_xor()
+{
+    if [ ${#@} -ne 2 ]; then
+        echo 'Usage: my_xor str1 str2'
         return
     fi
-    local pid=$1
-    if [ "$(uname -s)" = "Linux" ]; then
-        tr "\0" "\n" < "/proc/$pid/environ"
-    elif [ "$(uname -s)" = "Darwin" ]; then
-        # option e in ps show env
-        # use `command` to bypass grep alias
-        ps ewww $pid | command grep -o '[^ ]*=[^ ]*'
-    else
-        echo 'my_getpidenv do not support your system'
+    if [[ -n $ZSH_VERSION ]]; then
+        setopt KSH_ARRAYS
     fi
+    typeset res=(`echo "$1" | sed "s/../0x& /g"`)
+    shift 1
+    while [[ "$1" ]]; do
+        typeset one=(`echo "$1" | sed "s/../0x& /g"`)
+        typeset count1=${#res[@]}
+        if [ $count1 -lt ${#one[@]} ]
+        then
+            count1=${#one[@]}
+        fi
+        for (( i = 0; i < $count1; i++ ))
+        do
+            res[$i]=$((${one[$i]:-0} ^ ${res[$i]:-0}))
+        done
+        shift 1
+    done
+    printf "%02x" "${res[@]}"
 }
 
-# Just like du, but sorted by human-readable size
-my_du() {
-    perl -e'%h=map{/.\s/;99**(ord$&&7)-$`,$_}`du -d 1 -h`;die@h{reverse sort%h}'
-}
 
+################################################################################
+################################################################################
 proxy_on() {
-    export http_proxy='http://localhost:1087'
-    export https_proxy='http://localhost:1087'
-    export JAVA_OPTS="$JAVA_OPTS -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=1087"
-    export JAVA_OPTS="$JAVA_OPTS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=1087"
+    export http_proxy='http://localhost:8118'
+    export https_proxy='http://localhost:8118'
+    export JAVA_OPTS="$JAVA_OPTS -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=8118"
+    export JAVA_OPTS="$JAVA_OPTS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=8118"
     ## Default, sbt use gigahorse as HTTP client, but gigahorse do not support proxy, so disable gigahorse
     ## https://github.com/sbt/sbt/issues/3696
     export JAVA_OPTS="$JAVA_OPTS -Dsbt.gigahorse=false"
     if command -v npm >/dev/null 2>&1; then
-        npm config set proxy http://localhost:1087
-        npm config set https-proxy http://localhost:1087
+        npm config set proxy http://localhost:8118
+        npm config set https-proxy http://localhost:8118
     fi
     echo "proxy on"
 }
@@ -307,96 +324,6 @@ proxy_status() {
 
 ################################################################################
 ################################################################################
-## helper functions for emacs
-
-alias em='emacs -q -nw'
-
-if [ "$(uname -s)" = "Darwin" ]; then
-    emx() {
-        Emacs=/Applications/Emacs.app/Contents/MacOS/Emacs
-        for f in "$@";
-        do
-            test -e "$f" || touch "$f"
-        done
-        open -a $Emacs "$@"
-    }
-fi
-
-# start emacs daemon
-emacs_start() {
-    LC_CTYPE=zh_CN.UTF-8 emacs --daemon
-}
-
-# stop emacs daemon
-emacs_stop() {
-    emacsclient --eval "(progn (setq kill-emacs-hook 'nil) (kill-emacs))"
-}
-
-# kill all emacs process
-emacs_killall() {
-    typeset user=$(id | sed s"/) .*//" | sed "s/.*(//")  # current user.
-    typeset pids=$(pgrep -u ${user} emacs Emacs Aquamacs);
-    if [ -n "$pids" ]; then
-        echo kill -9 $pids
-    else
-        echo "Cannot find any emacs process for user ${user}.";
-    fi
-}
-
-# check emacs status
-emacs_status() {
-    typeset pids=$(pgrep emacs Emacs Aquamacs);
-    if [ -n "$pids" ]; then
-        case "$(uname -s)" in
-            CYGWIN*)
-                # In CYGWIN, "-p" option in ps can only accept ONE pid.
-                # So, show processes one by one.
-                set -- $pids;
-                while [ "$1" ]; do
-                    ps -f -p $1
-                    shift
-                done
-                ;;
-            *)
-                ps -f -p $pids;
-                ;;
-        esac
-    else
-        echo "Cannot find emacs process.";
-    fi
-}
-
-# Check current shell is launched by emacs or not.
-# Return 0 if it's not launched by emacs
-# Return 1 if it's launched by emacs
-# Return 2 if it's launched by Aquamacs (A emacs variant in Mac OS X)
-launch_by_emacs() {
-    typeset p_pid=$PPID
-    typeset ppid_cmd
-    while [[ $p_pid != 1 ]]
-    do
-        # ppid_cmd=`ps -p $p_pid -o cmd=` ## -o is not supported by ps in Cygwin
-        ppid_cmd=$(ps -p $p_pid | tail -n 1)
-        if [[ $ppid_cmd == *emacs* ]]; then
-            return 1;
-        fi
-        if [[ $ppid_cmd == *Emacs* ]]; then
-            # In Mac, Emacs.app has name `Emacs`
-            return 1;
-        fi
-        if [[ $ppid_cmd == *Aquamacs* ]]; then
-            return 2;
-        fi
-        #echo "p_pid is " $p_pid
-        p_pid=$(get_ppid $p_pid)
-        #echo "p_pid after is " $p_pid
-        if [[ $p_pid -lt 1 ]]; then
-            return 0
-        fi
-    done
-    return 0
-}
-
 # Get the parent process ID of process $1.
 #
 # The caller can user this method to get ppid: var1=$(get-ppid pid)
@@ -407,15 +334,15 @@ launch_by_emacs() {
 # Note 1: Please do NOT echo others into stdout in this function.
 # Note 2: ps in Cygwin does not support -o option.
 # Note 3: Mac OS X, for example Yosemite, does not have directory /proc
-get_ppid() {
+my_get_ppid() {
     if [ ! "$1" ] ; then
-        echo 'Usage: get_ppid pid' 1>&2;  # print usage into stderr
+        echo 'Usage: my_get_ppid pid' 1>&2;  # print usage into stderr
         echo '-1'  # error
     fi
     # First, check if is number.
     if [[ $1 =~ ^[0-9]+$ ]]; then
         #echo "debug. get-ppid arg: "$1 >1.log
-        if [ -a /proc/$1/stat ]; then
+        if [ -a "/proc/$1/stat" ]; then
             typeset -a stat
             stat=($(< /proc/$1/stat))  # create an array
             # Note: typeset -a stat=($(< /proc/$1/stat)) cannot work in zsh.
@@ -432,84 +359,24 @@ get_ppid() {
     fi
 }
 
-emc() {
-    # If current shell is created by emacs (M-x term), then
-    #  open file with -n (--no-wait) option in current emacs frame.
-    launch_by_emacs
-    typeset retcode=$?
-    if [[ $retcode == 2 ]]; then
-        open -a Aquamacs "$@"
-    elif [[ $retcode == 1 ]]; then
-        emacsclient -n "$@"
+# Show env of process
+my_get_pidenv() {
+    if [ ${#@} -ne 1 ]; then
+        echo 'Usage: my_get_pidenv pid'
+        return
+    fi
+    local pid=$1
+    if [ "$(uname -s)" = "Linux" ]; then
+        tr "\0" "\n" < "/proc/$pid/environ"
+    elif [ "$(uname -s)" = "Darwin" ]; then
+        # option e in ps show env
+        # use `command` to bypass grep alias
+        ps ewww $pid | command grep -o '[^ ]*=[^ ]*'
     else
-        emacsclient -t -a "" "$@"
+        echo 'my_getpidenv do not support your system'
     fi
 }
 
-emn() {
-    # Open file and jump to specified line
-    # For example, `emn file.txt:102` would open file.txt, and jump to line 102
-    typeset str=$1
-    if [[ -z "$str" ]]; then
-        em
-    else
-        typeset -a array
-        array=(${str//:/ })
-        ## Note: typeset -a array=(${str//:/ }) cannot work in zsh
-        typeset filename=${array[0]}
-        typeset line=${array[1]}
-        typeset column=${array[2]}
-        #echo "filename:" $filename;
-        #echo "line:" $line;
-        #echo "column:" $column;
-        if [[ $line =~ ^[0-9]+$ ]]; then
-            if [[ $column =~ ^[0-9]+$ ]]; then
-                em +$line:$column "$filename"
-            else
-                em +$line "$filename"
-            fi
-        else
-            em "$filename"
-        fi
-    fi
-}
-
-ediff() {
-    typeset quoted1
-    typeset quoted2
-    # diff two files
-    if [[ -f $1 && -f $2 ]]; then
-        # Idea from: http://stackoverflow.com/questions/8848819/emacs-eval-ediff-1-2-how-to-put-this-line-in-to-shell-script
-        quoted1=${1//\\/\\\\}; quoted1=${quoted1//\"/\\\"}
-        quoted2=${2//\\/\\\\}; quoted2=${quoted2//\"/\\\"}
-        #emacsclient -t -a "" --eval "(ediff \"$quoted1\" \"$quoted2\")"
-        launch_by_emacs
-        if [[ $? == 1 ]]; then
-            emacsclient -n --eval "(ediff \"$quoted1\" \"$quoted2\")"
-        else
-            emacsclient -t -a "" --eval "(ediff \"$quoted1\" \"$quoted2\")"
-        fi
-    else
-        # diff two directories
-        if [[ -d $1 && -d $2 ]]; then
-            quoted1=${1//\\/\\\\}; quoted1=${quoted1//\"/\\\"}
-            quoted2=${2//\\/\\\\}; quoted2=${quoted2//\"/\\\"}
-            # emacsclient -t -a "" --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
-            launch_by_emacs
-            if [[ $? == 1 ]]; then
-                emacsclient -n --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
-            else
-                emacsclient -t -a "" --eval "(ediff-directories \"$quoted1\" \"$quoted2\" nil)"
-            fi
-        else
-            echo "Usage: ediff file1 file2, file1 and file2 must be exsiting files or directories."
-        fi
-    fi
-}
-
-my_gen_pw() {
-    openssl rand -base64 20
-}
 
 ################################################################################
 ################################################################################
@@ -564,145 +431,3 @@ gdbwait() {
 
 # Do not print the introductory and copyright messages in gdb.
 alias gdb='gdb -q'
-
-################################################################################
-## helper functions for cscope
-
-# get function definitions in current directory
-my_getfuncdef() {
-    if [ ! "$1" ] ; then
-        echo "Usage: my_getfuncdef [func_name]"
-        return
-    fi
-    cscope_query 1 $1
-}
-
-# get function references in current directory
-my_getfuncref() {
-    if [ ! "$1" ] ; then
-        echo "Usage: my_getfuncref [func_name]"
-        return
-    fi
-    cscope_query 3 $1
-}
-
-cscope_query() {
-    # $1 is input field num (counting from 0)
-    # $2 is keyword
-    if ! command -v cscope >/dev/null 2>&1; then
-        echo "cscope is not found."
-        return
-    fi
-    if [ ! -a "$PWD/cscope.output" ]; then
-        typeset index_file=$(mktemp /tmp/cscopeindex.XXXXXX)
-        typeset list_file=$(mktemp /tmp/cscopelist.XXXXXX)
-        if command -v cscope-indexer >/dev/null 2>&1; then
-            cscope-indexer -f $index_file -i $list_file -r
-        else
-            # generate index file manually if cscope-indexer is not available.
-            my_gencscopefiles $list_file
-            cscope -b -i $list_file -f $index_file
-        fi
-        cscope -d -f $index_file -L -$1 $2
-        rm -f $index_file
-        rm -f $list_file
-    else
-        cscope -L -$1 $2
-    fi
-}
-
-my_gencscopefiles () {
-    typeset list_file=cscope.files
-    if [ $# -ge 1 ]; then
-        list_file=$1
-    fi
-    ( find "$PWD" \( -type f -o -type l \) ) | \
-        egrep -i '\.([chly](xx|pp)*|cc|hh|go|java)$' | \
-        sed -e '/\/CVS\//d' -e '/\/RCS\//d' -e 's/^\.\///' | \
-        sort > $list_file
-}
-
-################################################################################
-# Upload file to server
-upload() {
-    if [[ ${#@} -ne 1 ]]; then
-        echo 'Usage: upload file_path'
-        echo "curl -F \"file=@file\" ${UPLOAD_SVR_URL:-UPLOAD_SVR_URL} >out.log"
-        return
-    fi
-    typeset file_path=$1
-    if [[ ! -f $file_path ]]; then
-        echo "file $file_path not exist"
-        return
-    fi
-    if [[ -z ${UPLOAD_SVR_URL} ]]; then
-        echo "env UPLOAD_SVR_URL is empty, do nothing"
-        return
-    fi
-    typeset output=$(mktemp /tmp/curl.XXXXXX)
-    # Note: curl progress info only displayed when you redirect the output to a file
-    curl -F "file=@${file_path}" ${UPLOAD_SVR_URL} > $output
-    cat $output
-    rm -f $output
-}
-
-################################################################################
-## helper functions for VirtualBox
-
-# lists all virtual machines currently registered with VirtualBox
-my_vmlist() {
-    VBoxManage list vms
-}
-
-my_vmlistrunning() {
-    VBoxManage list runningvms
-}
-
-# usage: my_vmstart [vmname]
-# start virtual machine in headless mode, and show ip of guest OS.
-my_vmstart () {
-    typeset vmname="$1"
-    if [ ! "$1" ] ; then
-        echo "Usage: my_vmstart [vmname]"
-        echo ""
-        echo "Candidate of vmname:"
-        VBoxManage list vms | cut -d' ' -f1
-        return
-    fi
-    # start vm in headless mode
-    VBoxManage startvm $vmname --type headless
-
-    # my_vmcheckip $vmname;
-    echo "You can run 'my_vmcheckip ${vmname}' to check the ip of vm."
-}
-
-# usage: my_vmstop [vmname]
-# stop virtual machine
-my_vmstop () {
-    typeset vmname="$1"
-    if [ ! "$1" ] ; then
-        echo "Usage: my_vmstart [running_vmname]"
-        echo ""
-        echo "Candidate of running_vmname:"
-        VBoxManage list runningvms | cut -d' ' -f1
-        return
-    fi
-    # shutdown virtual machine
-    VBoxManage controlvm $vmname poweroff
-}
-
-# usage: my_vmcheckip [your_vmname]
-my_vmcheckip () {
-    typeset vmname="$1"
-    if [ ! "$1" ] ; then
-        echo "Usage: my_vmcheckip [vmname]"
-        return
-    fi
-    # try to show ip of guest OS, this method sometimes incorrectly (it may incorrect when host OS IP changed).
-    typeset ip=$(VBoxManage guestproperty enumerate $vmname | grep "Net.*V4.*IP" | awk -F"," '{print $2}' | awk '{print $2}')
-    if [ -z $ip ]; then
-        echo "Cannot obtain ip of $vmname"
-    else
-        echo "$vmname ip may be $ip"
-    fi
-}
