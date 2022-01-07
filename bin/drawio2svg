@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "Only support in Mac OS"
+    exit
+fi
+
+if [ ! "$1" ] ; then
+    echo 'Usage: drawio2svg file1 file2 ...'
+    exit
+fi
+
+draw_io='/Applications/draw.io.app/Contents/MacOS/draw.io'
+
+typeset input_file
+while [ "$1" ] ; do
+  input_file="$1"
+  file="${input_file%.*}" # File name excluding extension
+
+  # Export diagram to plain XML
+  $draw_io --export --format xml --uncompressed --output "/tmp/$file.xml" "$file.drawio"
+
+  # Get page names from /tmp/$file.xml
+  # fragment of /tmp/$file.xml:
+  # ... <diagram id="70nXeK3X-031ubzLwCbW" name="Page-1"> ... <diagram id="E2O05U4Qq7FJMC8P97lE" name="Page-2">
+  pages=$(perl -ne 'while ($_ =~ /<diagram.*?name="(.*?)">/g) {print "$1\n"}' "/tmp/$file.xml")
+  #                   ^                     ^              ^          ^
+  #                   |                non greedy          |          |
+  #                   |                                    |          |
+  #                    \___ find all matches in a line ___/     group 1 (page name)
+
+  # Count how many pages
+  count=$(echo "$pages" | wc -l)
+
+  index=0 # Page index is zero based
+  echo "$pages" | while read -r page; do
+      # Export each page as a svg
+      $draw_io --export --page-index $index --output "$file-$page.svg" "$file.drawio"
+      index=$((index+1))
+  done
+
+  rm -f "/tmp/$file.xml"
+
+  shift
+done
