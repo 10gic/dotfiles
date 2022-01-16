@@ -64,18 +64,13 @@ case "$(uname -s)" in
 esac
 
 # Only show files starts with dot
-alias l.='ls -d .*'
+alias l.='ls -dl .*'
 
 # Don't delete the input files when using unxz
 alias unxz='unxz -k'
 
-# ulimit command by default changes the HARD limits
-# Use the -S option to change the SOFT limits
-alias ulimit='ulimit -S'
-
 # Compute sum of stdin line by line
-## If there are too many lines, tool bc would fail.
-## All numbers are represented internally in decimal and all computation is done in decimal.
+# If there are too many lines, tool bc would fail.
 alias my_sum='paste -sd+ - |bc'
 
 # Just like du, but sorted by human-readable size
@@ -116,24 +111,6 @@ mkcd () {
     mkdir -p "$1" && cd "$1";
 }
 
-# rm files/directories except the specified items.
-rm_not () {
-    if [ ! "$1" ] ; then
-        echo 'Usage: rm_not file1 file2 ...'
-        return
-    fi
-
-    typeset ignore_files="";
-    typeset ignore_file;
-    for ignore_file in "$@";
-    do
-        ignore_file="${ignore_file/%\//}"  # remove trailing '/', for example: dir1/ -> dir1
-        ignore_files="${ignore_files}-not -name ${ignore_file} ";
-    done;
-
-    find . $ignore_files -delete
-}
-
 # Copy fullpath of $1 to clipboard.
 cl () {
     if [[ "$1" == /* ]]; then
@@ -171,13 +148,18 @@ cl () {
 
 # Generate a random password
 my_gen_pw() {
-    openssl rand -base64 20
+    typeset pw_len=20
+    if [ "$1" ] ; then
+	pw_len=$1
+    fi
+
+    openssl rand -base64 40 | tr -d '0oOl1+/=' | head -c $pw_len
 }
 
 # You don't need it if dos2unix is available.
-dos2unix_() {
+my_dos2unix() {
     if [ ! "$1" ] ; then
-        echo 'Usage: dos2unix_ file1 file2 ...'
+        echo 'Usage: my_dos2unix file1 file2 ...'
         return
     fi
 
@@ -334,14 +316,13 @@ proxy_status() {
 # Note 1: Please do NOT echo others into stdout in this function.
 # Note 2: ps in Cygwin does not support -o option.
 # Note 3: Mac OS X, for example Yosemite, does not have directory /proc
-my_get_ppid() {
+my_ppid() {
     if [ ! "$1" ] ; then
-        echo 'Usage: my_get_ppid pid' 1>&2;  # print usage into stderr
+        echo 'Usage: my_ppid pid' 1>&2;  # print usage into stderr
         echo '-1'  # error
     fi
     # First, check if is number.
     if [[ $1 =~ ^[0-9]+$ ]]; then
-        #echo "debug. get-ppid arg: "$1 >1.log
         if [ -a "/proc/$1/stat" ]; then
             typeset -a stat
             stat=($(< /proc/$1/stat))  # create an array
@@ -360,9 +341,9 @@ my_get_ppid() {
 }
 
 # Show env of process
-my_get_pidenv() {
+my_pidenv() {
     if [ ${#@} -ne 1 ]; then
-        echo 'Usage: my_get_pidenv pid'
+        echo 'Usage: my_pidenv pid'
         return
     fi
     local pid=$1
@@ -373,7 +354,7 @@ my_get_pidenv() {
         # use `command` to bypass grep alias
         ps ewww $pid | command grep -o '[^ ]*=[^ ]*'
     else
-        echo 'my_getpidenv do not support your system'
+        echo 'my_pidenv do not support your system'
     fi
 }
 
