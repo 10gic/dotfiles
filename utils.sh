@@ -153,7 +153,7 @@ my_gen_pw() {
 	pw_len=$1
     fi
 
-    openssl rand -base64 40 | tr -d '0oOl1+/=' | head -c $pw_len
+    openssl rand -base64 1000 | tr -d '\r\n' | tr -d '0oOl1+/=' | head -c $pw_len
 }
 
 # You don't need it if dos2unix is available.
