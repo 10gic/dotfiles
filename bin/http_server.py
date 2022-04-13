@@ -19,7 +19,9 @@ except ImportError:
 class HTTPRequestHandler(httpserver.SimpleHTTPRequestHandler):
     def do_PUT(self):
         print(self.headers)
-        length = int(self.headers["Content-Length"])  # may raise TypeError when no 'Content-Length' header
+        length = 0
+        if "Content-Length" in self.headers:
+            length = int(self.headers["Content-Length"])
         path = self.translate_path(self.path)
         if os.path.isdir(path):
             print("Error: A directory with same name exist in server")
@@ -33,7 +35,9 @@ class HTTPRequestHandler(httpserver.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         print(self.headers)
-        length = int(self.headers['Content-Length'])  # may raise TypeError when no 'Content-Length' header
+        length = 0
+        if "Content-Length" in self.headers:
+            length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(length)
         print(post_data)  # Just print the post data
         self.send_response(200)
