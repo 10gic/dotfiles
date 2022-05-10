@@ -10,6 +10,6 @@ while [ "$1" ] ; do
     input_file="$1"
     output_file="${input_file%.puml}.svg"
     echo "Converting $input_file to $output_file"
-    java -jar "${HOME}/dotfiles/javalib/plantuml.1.2020.22.jar" -tsvg "$input_file"
+    java -jar "${HOME}/dotfiles/javalib/plantuml-1.2022.5.jar" -tsvg "$input_file"
     shift
 done
