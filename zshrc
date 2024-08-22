@@ -46,14 +46,6 @@ zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 ################################################################################
 ################################################################################
-# set the xterm title to "username@hostname: directory"
-# http://www.faqs.org/docs/Linux-mini/Xterm-Title.html#ss4.1
-case $TERM in
-    xterm*)
-        precmd () {print -Pn "\e]0;%n@%m: %~\a"}
-        ;;
-esac
-
 if command -v dircolors >/dev/null 2>/dev/null; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
@@ -92,8 +84,9 @@ fi
 
 ################################################################################
 # source common utils/settings
-setopt KSH_ARRAYS
+
 setopt SH_WORD_SPLIT
+
 if [ -f ~/.utils.sh ]; then
     source ~/.utils.sh
 fi
