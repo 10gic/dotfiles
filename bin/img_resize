@@ -6,7 +6,7 @@ if [ ${#@} -ne 2 ]; then
     exit
 fi
 
-typeset input_file=$(python -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1")
+typeset input_file=$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1")
 typeset output_file="$input_file" # overwrite input file
 typeset width=$2
 

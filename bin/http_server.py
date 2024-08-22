@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # A simple http server with additional support for PUT/POST method
 #
@@ -53,7 +53,7 @@ host = '0.0.0.0'
 if sys.argv[1:]:
     port = int(sys.argv[1])
 else:
-    port = 8080
+    port = 8000
 
 server_address = (host, port)
 print("Serving HTTP on", host, "port", port)

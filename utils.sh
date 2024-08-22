@@ -119,9 +119,9 @@ cl () {
     else
         typeset fullpath="$PWD/$1"
     fi
-    if command -v python >/dev/null 2>&1; then
+    if command -v python3 >/dev/null 2>&1; then
         # normalize path by using python
-        fullpath=$(python -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$fullpath")
+        fullpath=$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$fullpath")
     fi
     case "$(uname -s)" in
         Linux|CYGWIN*)
@@ -200,7 +200,7 @@ my_10to16() {
         return
     fi
     typeset num="$1"
-    typeset result=`python -c "print(hex(${num}))"`
+    typeset result=`python3 -c "print(hex(${num}))"`
     # The result may contains trailing 'L', remove it.
     echo ${result%L}
 }
@@ -212,7 +212,7 @@ my_16to10() {
         return
     fi
     typeset num="$1"
-    python -c "print(int(\"${num}\", 16))"
+    python3 -c "print(int(\"${num}\", 16))"
 }
 
 # convert binary to hex
@@ -222,7 +222,7 @@ my_2to16() {
         return
     fi
     typeset num="$1"
-    python -c "print(hex(int(\"${num}\", 2)))"
+    python3 -c "print(hex(int(\"${num}\", 2)))"
 }
 
 # convert hex to binary
@@ -232,7 +232,7 @@ my_16to2() {
         return
     fi
     typeset num="$1"
-    python -c "print(bin(int(\"${num}\", 16)))"
+    python3 -c "print(bin(int(\"${num}\", 16)))"
 }
 
 # https://www.codeproject.com/Tips/470308/XOR-Hex-Strings-in-Linux-Shell-Script
