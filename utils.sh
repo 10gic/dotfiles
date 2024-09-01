@@ -193,6 +193,31 @@ my_gb18030_to_utf8() {
     done
 }
 
+my_base64tohex() {
+    if [ ${#@} -ne 1 ]; then
+        echo "Usage: my_base64tohex <base64_string>"
+        return 1
+    fi
+
+    echo "$1" | base64 -d | xxd -p -c 10000
+}
+
+my_hextobase64() {
+    if [ ${#@} -ne 1 ]; then
+        echo "Usage: my_hextobase64 <hex_string>"
+        return 1
+    fi
+    echo "$1" | xxd -r -p | base64
+}
+
+my_hextobase64urlsafe() {
+    if [ ${#@} -ne 1 ]; then
+        echo "Usage: my_hextobase64urlsafe <hex_string>"
+        return 1
+    fi
+    echo "$1" | xxd -r -p | base64 | tr '+/' '-_'
+}
+
 # convert decimal to hex, support big number
 my_10to16() {
     if [ ${#@} -ne 1 ]; then
